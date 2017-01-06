@@ -14,6 +14,11 @@ $RECYCLE.BIN/
 *.msm
 *.msp
 
+#Unity Specific Files
+*.info
+*.bin
+*/Temp/*
+
 # Windows shortcuts
 *.lnk
 
