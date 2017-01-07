@@ -4,24 +4,28 @@ using UnityEngine;
 
 public class PlayerMovement : MonoBehaviour {
 
-    float speed = 2;
-    float sprintSpeed = 2;
+    public float speed = 2;
+    public float sprintSpeed = 2;
+
+    private Rigidbody rb;
 
 	// Use this for initialization
 	void Start () {
-		
+        rb = GetComponent<Rigidbody>();
 	}
 	
 	// Update is called once per frame
-	void Update () {
+	void FixedUpdate () {
         Movement();
 	}
 
     void Movement()
     {
+        float runningSpeed = speed;
         float horizontal = Input.GetAxis("Horizontal");
-        float verticle = Input.GetAxis("Verticle");
+        float verticle = Input.GetAxis("Vertical");
         Vector3 velocityForce = new Vector3(horizontal,0,verticle);
+        rb.AddForce(velocityForce * runningSpeed * rb.mass);
     }
 
     void ChangeDirection()
