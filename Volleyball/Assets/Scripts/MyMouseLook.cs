@@ -12,6 +12,11 @@ public class MyMouseLook : MonoBehaviour
     public float sensitivityX = 15F;
     public float sensitivityY = 15F;
 
+    [Range(0.01f,1)]
+    public float smoothX = .1f;
+    [Range(0.01f, 1)]
+    public float smoothY = .1f;
+
     public float minimumX = -360F;
     public float maximumX = 360F;
 
@@ -22,7 +27,7 @@ public class MyMouseLook : MonoBehaviour
     float rotationY = 0F;
 
     Quaternion originalRotation;
-
+    Quaternion myRotation;
     void Update()
     {
         if(look)
@@ -38,7 +43,7 @@ public class MyMouseLook : MonoBehaviour
 
                 Quaternion xQuaternion = Quaternion.AngleAxis(rotationX, Vector3.up);
                 Quaternion yQuaternion = Quaternion.AngleAxis(rotationY, Vector3.left);
-                transform.localRotation = originalRotation * xQuaternion * yQuaternion;
+                myRotation = Quaternion.Lerp(transform.localRotation, originalRotation * xQuaternion * yQuaternion,(smoothX + smoothY)/2);
             }
             else if (axes == RotationAxes.MouseX)
             {
@@ -46,7 +51,7 @@ public class MyMouseLook : MonoBehaviour
                 rotationX = ClampAngle(rotationX, minimumX, maximumX);
 
                 Quaternion xQuaternion = Quaternion.AngleAxis(rotationX, Vector3.up);
-                transform.localRotation = originalRotation * xQuaternion;
+                myRotation = Quaternion.Lerp(transform.localRotation, originalRotation * xQuaternion, smoothX);
             }
             else
             {
@@ -54,11 +59,11 @@ public class MyMouseLook : MonoBehaviour
                 rotationY = ClampAngle(rotationY, minimumY, maximumY);
 
                 Quaternion yQuaternion = Quaternion.AngleAxis(rotationY, Vector3.left);
-                transform.localRotation = originalRotation * yQuaternion;
+                myRotation = Quaternion.Lerp(transform.localRotation, originalRotation * yQuaternion, smoothY);
                 
             }
         }
-
+        transform.localRotation = myRotation;
     }
 
     void Start()
