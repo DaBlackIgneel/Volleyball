@@ -71,6 +71,15 @@ public class MyMouseLook : MonoBehaviour
         originalRotation = transform.localRotation;
     }
 
+    public void SetSensitivityX(float input)
+    {
+        sensitivityX = input;
+    }
+
+    public void SetSensitivityY(float input)
+    {
+        sensitivityY = input;
+    }
     public void SetCursorLock(bool state)
     {
         if(state)

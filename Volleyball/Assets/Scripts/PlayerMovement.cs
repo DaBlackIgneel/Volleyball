@@ -59,7 +59,6 @@ public class PlayerMovement : MonoBehaviour {
             moveDir.y = rb.velocity.y;
 
             jumping = false;
-            //moveDir.y = -stickToGroundForce;
             if(jump)
             {
                 moveDir.y = jumpSpeed;

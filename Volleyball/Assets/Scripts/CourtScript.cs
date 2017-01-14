@@ -59,12 +59,9 @@ public class CourtScript : MonoBehaviour {
         Vector3 position = Vector3.zero;
         if (positionNumber == 1 && serveSide == courtSide && serve)
         {
-            //position.z += serveDistance * ((int)courtSide);
-            //ball.transform.position = position - Vector3.forward * (int)courtSide * .75f + Vector3.up * 1.35f;
             position = transform.Find(sideName).Find("ServePosition").position;
             server = currentPlayer;
             server.EnableController();
-            print(server.name);
         }
         else
         {
@@ -117,7 +114,7 @@ public class CourtScript : MonoBehaviour {
     public void GiveBallToServer()
     {
         rallyOver = false;
-        ball.transform.position = server.transform.position + server.transform.parent.forward * .5f + Vector3.up * 1.35f;
+        ball.transform.position = server.transform.position + server.transform.parent.forward * .5f + Vector3.up * 1f;
         currentTime = 0;
     }
 }

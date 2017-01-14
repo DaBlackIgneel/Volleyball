@@ -7,7 +7,8 @@ public enum ZoomAxis {X ,Y ,Z ,XY ,XZ ,YZ ,XYZ}
 public class CameraFollow : MonoBehaviour {
     public bool allowZoom;
     public ZoomAxis zoomAxis;
-    [Range(.01f,4)]
+    public float offset;
+    //[Range(.01f,4)]
     public float zoomSensitivity = .5f;
     [Range(.01f, 1)]
     public float zoomSmooth = .1f;
@@ -30,7 +31,7 @@ public class CameraFollow : MonoBehaviour {
     GameObject pivot;
     float angleDiff;
     float lerpOffset;
-    float offset;
+    
     MyMouseLook myMouseLook;
 	// Use this for initialization
 	void Start () {
@@ -61,10 +62,8 @@ public class CameraFollow : MonoBehaviour {
 
     void FollowAngle()
     {
-        //transform.LookAt(transform.localPosition + referencePosition + transform.parent.position);
-        angleDiff = (transform.localEulerAngles.x - originalAngle) * Mathf.Deg2Rad;// 
-        //Vector3 lerpVector = new Vector3(0, Mathf.Sin(angleDiff) * (lerpOffset - originalPosition.y), Mathf.Cos(angleDiff) * (lerpOffset - originalPosition.z));
-        deltaPosition = transform.localPosition - pivot.transform.localPosition; //+ lerpVector;
+        angleDiff = (transform.localEulerAngles.x - originalAngle) * Mathf.Deg2Rad;
+        deltaPosition = transform.localPosition - pivot.transform.localPosition;
         deltaPosition.Scale(zerooneone);
         baseAngle = Mathf.Atan2(deltaPosition.y, deltaPosition.z);
         currentAngle += -angleDiff * Mathf.Rad2Deg;
@@ -72,7 +71,7 @@ public class CameraFollow : MonoBehaviour {
         addPosition.z = -Mathf.Cos(currentAngle * Mathf.Deg2Rad) * (basePosition - pivot.transform.localPosition).magnitude;
 
         originalAngle = transform.localEulerAngles.x;
-        transform.localPosition = Vector3.Lerp(transform.localPosition,addPosition,0.25f); //+ baseReferencePosition - referencePosition;// + Vector3.Scale(addPosition,Vector3.forward);
+        transform.localPosition = Vector3.Lerp(transform.localPosition,addPosition,0.25f);
 
     }
     void GetOffset()
@@ -96,7 +95,6 @@ public class CameraFollow : MonoBehaviour {
     {
         
         Gizmos.color = Color.yellow;
-        //transform.LookAt(transform.localPosition + referencePosition + transform.parent.position);
         if(pivot == null)
             Gizmos.DrawSphere(transform.localPosition + baseReferencePosition + transform.parent.position, .1f);
         else
@@ -116,10 +114,14 @@ public class CameraFollow : MonoBehaviour {
                 break;
             case ZoomAxis.Z:
                 lerpOffset = Mathf.Lerp(basePosition.z, offset, zoomSmooth);
-                //transform.localPosition = Vector3.Scale(transform.localPosition, new Vector3(1, 1, 0)) + Vector3.forward * lerpOffset;
                 basePosition = Vector3.Scale(basePosition, new Vector3(1, 1, 0)) + Vector3.forward * lerpOffset;
 
                 break;
         }
+    }
+
+    public void SetZoomSensitivity(float input)
+    {
+        zoomSensitivity = input;
     }
 }

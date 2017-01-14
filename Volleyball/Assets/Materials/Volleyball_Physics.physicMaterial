@@ -6,8 +6,8 @@ PhysicMaterial:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 0}
   m_Name: Volleyball_Physics
-  dynamicFriction: 0.2
-  staticFriction: 0.2
+  dynamicFriction: 15.43
+  staticFriction: 12.78
   bounciness: 1
   frictionCombine: 0
   bounceCombine: 0

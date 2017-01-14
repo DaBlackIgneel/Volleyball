@@ -27,7 +27,22 @@ public class SpecialAction : MonoBehaviour {
     public bool resetPosition;
     public bool shoot;
     public float squatSpeed;
-    public float serveLob = .5f;
+    public float lobAgjust = 1f;
+    public float maxSpin = 5;
+
+    [Range(0.2f,1)]
+    public float aimingDetail = .5f;
+    private float myAimingDetail;
+    float AimingDetail { set {
+            if (myAimingDetail != value)
+            {
+                myAimingDetail = value;
+                myBurst[0].minCount = System.Convert.ToInt16( Mathf.Pow(myAimingDetail, 1.5f) * 200);
+                myBurst[0].maxCount = System.Convert.ToInt16(Mathf.Pow(myAimingDetail, 1.5f) * 200);
+                mySystem.emission.SetBursts(myBurst);
+            }
+        } }
+
 
     PlayerMovement controller;
     MyMouseLook m_MouseLook;
@@ -39,6 +54,8 @@ public class SpecialAction : MonoBehaviour {
     bool aimed;
 
     float hitCooldown = 1;
+    float normalHitCooldown = 1;
+    float serveHitCooldown = .2f;
     [SerializeField] float hitTime = 0;
     bool slowDown;
     float slowTimeScale = .01f;
@@ -46,6 +63,7 @@ public class SpecialAction : MonoBehaviour {
     float power = 1;
     
     float regFixedTimeDelta;
+    InGameUI gameUI;
 
     bool Shoot
     {
@@ -59,15 +77,25 @@ public class SpecialAction : MonoBehaviour {
 
     CourtScript court;
     Transform arms;
-    Camera tpc;
+    CameraFollow tpc;
     Camera fpc;
     MyMouseLook cameraLook;
 
     Vector3 aimDir;
     Vector3 tempAimDir;
     Vector2 tempMousePos;
+    [SerializeField]
+    Vector2 ballSpin;
+    [SerializeField]
+    [Range(0.1f, 4)]
+    float smashScrollSpeed = .5f;
+
+    [SerializeField]
+    [Range(0.01f, 2)]
+    float lobScrollSpeed = .25f;
 
     ParticleSystem mySystem;
+    ParticleSystem.Burst[] myBurst;
     ParticleSystem.Particle[] myParticle;
 
     CapsuleCollider myCollider;
@@ -89,7 +117,7 @@ public class SpecialAction : MonoBehaviour {
         rb = myParent.GetComponent<Rigidbody>();
         arms = myParent.Find("Arms");
         fpc = myParent.Find("FirstPersonCamera").GetComponent<Camera>();
-        tpc = myParent.Find("ThirdPersonCamera").GetComponent<Camera>();
+        tpc = myParent.Find("ThirdPersonCamera").GetComponent<CameraFollow>();
         court = GameObject.FindGameObjectWithTag("Court").GetComponent<CourtScript>();
         vBall = GameObject.FindGameObjectWithTag("Ball").GetComponent<VolleyballScript>();
         controller = myParent.GetComponent<PlayerMovement>();
@@ -99,7 +127,7 @@ public class SpecialAction : MonoBehaviour {
         cameraLook = tpc.GetComponent<MyMouseLook>();
         
         if (isPlayer)
-            tpc.GetComponent<MyMouseLook>().SetCursorLock(true);
+            cameraLook.SetCursorLock(true);
         else
         {
             controller.enabled = false;
@@ -112,7 +140,7 @@ public class SpecialAction : MonoBehaviour {
         hitTime = hitCooldown;
 
         mySystem = myParent.GetComponentInChildren<ParticleSystem>();
-        myParticle = new ParticleSystem.Particle[30];
+        myBurst = new ParticleSystem.Burst[1];
 
         originColliderHeightY = new Vector2(myCollider.height, myCollider.center.y);
         originMeshHeightY = new Vector2(transform.localScale.y, transform.localPosition.y);
@@ -120,8 +148,20 @@ public class SpecialAction : MonoBehaviour {
         squatColliderHeightY = new Vector2(1, 0.5f);
         squatMeshHeightY = new Vector2(0.5f, 0.5f);
         squatTriggerHeightY = new Vector2((originMeshHeightY.x - squatMeshHeightY.x + 1) * originTriggerHeightY.x, originTriggerHeightY.y - .5f);
+
+        gameUI = GameObject.FindGameObjectWithTag("EventSystem").GetComponent<InGameUI>();
     }
 	
+    void Update()
+    {
+        if (!hitting)
+            AimingDetail = aimingDetail;
+        if (court.serve)
+            hitCooldown = serveHitCooldown;
+        else
+            hitCooldown = normalHitCooldown;
+    }
+
 	// Update is called once per frame
 	void FixedUpdate ()
     {
@@ -145,7 +185,6 @@ public class SpecialAction : MonoBehaviour {
             }
             if (hitTime > hitCooldown && IgnoreCollision)
             {
-                //Physics.IgnoreCollision(ball.GetComponent<Collider>(), GetComponent<Collider>(), false);
                 IgnoreCollision = false;
             }
             if (!isPlayer)
@@ -158,7 +197,7 @@ public class SpecialAction : MonoBehaviour {
                 Aim();
             }
             Block();
-            Squat();
+            
         }
         else
         {
@@ -175,9 +214,11 @@ public class SpecialAction : MonoBehaviour {
                     court.GiveBallToServer();
                 }
             }
-        }        
+        }
+        Squat();
     }
 
+    #region computerStuff
     void ComputerMovement()
     {
         //((int)VolleyballSide) * ball.velocity.z > 0 && 
@@ -196,12 +237,12 @@ public class SpecialAction : MonoBehaviour {
         Vector3 myPosition = new Vector3(position.x, transform.position.y, position.z);
         rb.MovePosition(myPosition);
     }
+    #endregion
 
+    #region InputActions
     void Block()
     {
         arms.gameObject.SetActive(block);
-        //fpc.enabled = block;
-        //tpc.enabled = !block;
     }
 
     void Squat()
@@ -243,31 +284,21 @@ public class SpecialAction : MonoBehaviour {
         {
             block = (Input.GetAxisRaw("Block") != 0);
             squat = (Input.GetAxis("Squat") > 0.75f);
+            gameUI.SetToggleMenu(Input.GetButtonDown("Menu"), this);
         }
             
     }
+    #endregion
 
-    void OnTriggerEnter(Collider other)
-    {
-        if(other.tag == "Ball" && ((hitTime > hitCooldown  && !court.rallyOver) || court.readyToServe))
-        {
-            hitting = true;
-            slowDown = true;
-            if (isPlayer)
-            {
-                transform.parent = null;
-                controller.rb.velocity = Vector3.zero;
-                controller.enabled = false;
-            }
-            vBall.CollideWithPlayer(gameObject);
-            if (court.readyToServe)
-                court.readyToServe = false;
-        }
-    }
-
+    #region court methods
     public void EnableController()
     {
         controller.enabled = true;
+    }
+
+    public PlayerMovement GetController()
+    {
+        return controller;
     }
 
     public void EndRally()
@@ -276,31 +307,17 @@ public class SpecialAction : MonoBehaviour {
         squat = false;
         Block();
         Squat();
-        if (slowDown)
-        {
+        //if (slowDown)
+        //{
             
             ReturnSpeedToNormal();
             //this.enabled = false;
-        }
+        //}
         controller.enabled = false;
     }
+    #endregion
 
-    /*void OnTriggerExit(Collider other)
-    {
-        if (other.transform.tag == "Ball" && hitting)
-        {
-            ReturnSpeedToNormal();
-        }
-    }
-
-    void OnCollisionEnter(Collision other)
-    {
-        if(other.transform.tag == "Ball" && hitting)
-        {
-            ReturnSpeedToNormal();
-        }
-    }
-    */
+    #region Shooting Ball
     void Aim()
     {
         Cursor.visible = true;
@@ -318,39 +335,23 @@ public class SpecialAction : MonoBehaviour {
             
             aimDir = mousePoint.direction;
             aimDir = aimDir.normalized;
-            power = MaxPower * minimumPower;
-            if (isPlayer)
-            {
-                
-                /*float deltaMousePos = Input.mousePosition.y - tempMousePos.y;
-                if (deltaMousePos > 0)
-                {
-                    aimDir.y += deltaMousePos / (Screen.height / 2 * lobConst);
-                    aimDir = aimDir.normalized;
-                }
-                else
-                {
-                    aimDir *= smashConst;
-                }
-                aimDir.y += Mathf.Sign(aimDir.y) * Mathf.Exp(Mathf.Abs(ball.transform.position.y) * -1 / tau) / divisionFactor;*/
-            }
+            power = MaxPower * minimumPower*2;
+            ballSpin = Vector2.up;
             if (aimDir.y > 0)
             {
                 aimDir.y *= vBall.rb.mass;
             }
             if (Input.GetButtonDown("Fire") || !isPlayer)
             {
-                m_MouseLook.SetCursorLock(false);
-                m_MouseLook.look = false;
-                cameraLook.look = false;
-                aimed = true;
+                SetAimed(true);
                 pastBallVelocity = vBall.rb.velocity;
-                vBall.rb.velocity = Vector3.zero;
+                vBall.ResetMotion();
                 tempAimDir = aimDir;
             }
         }
         if(aimed)
         {
+            
             HitTheBall();
 
         }
@@ -362,19 +363,36 @@ public class SpecialAction : MonoBehaviour {
     {
         
         float deltaMousePos = Input.mousePosition.y - tempMousePos.y;
+        
         aimDir = tempAimDir;
+        
         if (isPlayer)
         {
-
+            float deltaMousePosX = Input.mousePosition.x - tempMousePos.x;
+            ballSpin.x = deltaMousePosX / (Screen.width / 2) * maxSpin;
+            
             if (deltaMousePos > 0)
             {
-                float myLob = court.serve ? lobConst * serveLob : lobConst;
+                lobAgjust += (Input.mouseScrollDelta.y) * lobScrollSpeed;
+                if (lobAgjust < 0.01f)
+                    lobAgjust = 0.01f;
+                float myLob = lobConst * lobAgjust;
+                
                 aimDir.y += deltaMousePos / (Screen.height / 2 * myLob) * vBall.rb.mass;
                 aimDir = aimDir.normalized;
+                ballSpin.y = 1;
             }
             else
             {
                 aimDir *= smashConst;
+                if(ballSpin.y > 1.1f)
+                    ballSpin.y -= (Input.mouseScrollDelta.y) * smashScrollSpeed;
+                else
+                    ballSpin.y -= (Input.mouseScrollDelta.y) * smashScrollSpeed/5f;
+                if (ballSpin.y < 0)
+                    ballSpin.y = 0;
+                else if (ballSpin.y > maxSpin + 1)
+                    ballSpin.y = maxSpin + 1;
             }
             aimDir.y += Mathf.Sign(aimDir.y) * Mathf.Exp(Mathf.Abs(vBall.rb.transform.position.y) * -1 / tau) / divisionFactor;            
             power = (Mathf.Abs(deltaMousePos) / (Screen.height / 2 * (1 / (1 - minimumPower))) + minimumPower) * MaxPower;
@@ -385,10 +403,7 @@ public class SpecialAction : MonoBehaviour {
         }
         if (Input.GetButtonDown("Cancel") && isPlayer)
         {
-            m_MouseLook.SetCursorLock(true);
-            m_MouseLook.look = true;
-            cameraLook.look = true;
-            aimed = false;
+            SetAimed(false);
             vBall.rb.velocity = pastBallVelocity;
             return;
         }
@@ -400,11 +415,42 @@ public class SpecialAction : MonoBehaviour {
         
     }
 
-    void ShootBall()
+    void SetAimed(bool myAimed)
     {
-        vBall.rb.AddForce(aimDir * power);
+        m_MouseLook.SetCursorLock(!myAimed);
+        m_MouseLook.look = !myAimed;
+        cameraLook.look = !myAimed;
+        tpc.allowZoom = !myAimed;
+        lobAgjust = 1;
+        aimed = myAimed;
     }
 
+    void ShootBall()
+    {
+        vBall.Shoot(aimDir * power,ballSpin, myParent);
+    }
+
+    void OnTriggerEnter(Collider other)
+    {
+        if (other.tag == "Ball" && ((hitTime > hitCooldown && !court.rallyOver)) && !hitting)
+        {
+            hitting = true;
+            slowDown = true;
+            if (isPlayer)
+            {
+                transform.parent = null;
+                controller.rb.velocity = Vector3.zero;
+                controller.enabled = false;
+            }
+            if (court.readyToServe)
+                court.readyToServe = false;
+            vBall.CollideWithPlayer(this);
+        }
+    }
+
+    #endregion
+
+    #region Reseting
     void ReturnSpeedToNormal()
     {
         hitting = false;
@@ -429,25 +475,30 @@ public class SpecialAction : MonoBehaviour {
         
         mySystem.Clear();
         mySystem.Stop();
-        m_MouseLook.SetCursorLock(true);
-        m_MouseLook.look = true;
-        cameraLook.look = true;
+        SetAimed(false);
 
-        print("Hello3 " + myParent.name);
         transform.eulerAngles = myParent.eulerAngles;
         transform.position = myParent.position + Vector3.up * .85f;
         transform.parent = myParent;
-        print(transform.parent);
-        //Physics.IgnoreCollision(ball.GetComponent<Collider>(), GetComponent<Collider>(), true);
-
-        // controller.enabled = true;
     }
 
+    public void Pause(bool pause)
+    {
+        controller.enabled = !pause;
+        SetAimed(pause);
+    }
+    #endregion
+
+
+    #region Prediction
     void PredictShot()
     {
         if(mySystem.isStopped)
         {
             mySystem.Play();
+            mySystem.emission.GetBursts(myBurst);
+            
+            myParticle = new ParticleSystem.Particle[myBurst[0].minCount];
         }
         if(mySystem.isPlaying)
         {
@@ -456,14 +507,46 @@ public class SpecialAction : MonoBehaviour {
 
         if(mySystem.particleCount > 0)
         {
-            float powerConst = 7 *power / MaxPower;
+            float powerConst = 7 *power / MaxPower / 10 * 30/ mySystem.particleCount;
+            float time = 0;
+            Vector3 floaterRef = Vector3.zero;
             for(int i = 0; i < myParticle.Length; i++)
             {
-                myParticle[i].position = vBall.rb.position + (aimDir * power / vBall.rb.mass/3.75f)* (i * powerConst* regFixedTimeDelta / 10)
-                        - 10*Vector3.Scale(Physics.gravity, Physics.gravity) * Mathf.Pow(i * powerConst * regFixedTimeDelta /10,2);
+                
+                time = powerConst * regFixedTimeDelta;
+                myParticle[i].position = vBall.rb.position + PredictAddedForce(i * time) + PredictGravity(i * time) + PredictSpin(time, i, ref floaterRef);
             }
             mySystem.SetParticles(myParticle, myParticle.Length);
         }
 
     }
+
+    Vector3 PredictAddedForce(float time)
+    {
+        return (aimDir * power / vBall.rb.mass / 3.75f) * time;
+    }
+
+    Vector3 PredictGravity(float time)
+    {
+        return -10 * Vector3.Scale(Physics.gravity, Physics.gravity) * Mathf.Pow(time, 2);
+    }
+
+    Vector3 PredictSpin(float time, int i, ref Vector3 floaterRef)
+    {
+        
+        Vector3 predictedSpin = Vector3.zero;
+        if (ballSpin.y >= 1)
+        {
+            float rate = (1 - Mathf.Pow(vBall.SpinAddConst, time * i / regFixedTimeDelta)) / (1 - vBall.SpinAddConst) * 1.75f;
+            predictedSpin = Vector3.Scale(ballSpin - Vector2.up, -Vector3.up * rate + Vector3.right * rate) * time * i;
+        }
+        else
+        {
+            predictedSpin = (Vector3.up * vBall.GetFloater(time * i / regFixedTimeDelta, ballSpin.y, Direction.Y) + Vector3.right * vBall.GetFloater(time * i/ regFixedTimeDelta, ballSpin.y, Direction.X)) * time*40;
+            predictedSpin += floaterRef;
+            floaterRef = predictedSpin;
+        }
+        return predictedSpin;
+    }
+    #endregion
 }
