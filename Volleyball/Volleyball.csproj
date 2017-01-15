@@ -86,8 +86,8 @@
     <Compile Include="Assets\Scripts\InGameUI.cs" />
     <Compile Include="Assets\Scripts\MyMouseLook.cs" />
     <Compile Include="Assets\Scripts\PlayerMovement.cs" />
+    <Compile Include="Assets\Scripts\Rules.cs" />
     <Compile Include="Assets\Scripts\SpecialAction.cs" />
-    <Compile Include="Assets\Scripts\ThirdPersonCameraController.cs" />
     <Compile Include="Assets\Scripts\VolleyballScript.cs" />
   </ItemGroup>
   <ItemGroup>

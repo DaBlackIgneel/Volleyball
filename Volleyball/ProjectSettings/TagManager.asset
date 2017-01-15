@@ -8,6 +8,8 @@ TagManager:
   - Ball
   - Court
   - EventSystem
+  - CourtController
+  - Net
   layers:
   - Default
   - TransparentFX

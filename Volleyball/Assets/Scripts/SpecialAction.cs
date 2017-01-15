@@ -60,7 +60,7 @@ public class SpecialAction : MonoBehaviour {
 
     float hitCooldown = 1;
     float normalHitCooldown = 1;
-    float serveHitCooldown = .2f;
+    float serveHitCooldown = .1f;
     [SerializeField] float hitTime = 0;
     bool slowDown;
     float slowTimeScale = .01f;
@@ -114,6 +114,8 @@ public class SpecialAction : MonoBehaviour {
     Vector2 originTriggerHeightY;
     Vector2 squatTriggerHeightY;
 
+    Vector3 myLastVelocity;
+
     // Use this for initialization
     void Start () {
         
@@ -131,7 +133,7 @@ public class SpecialAction : MonoBehaviour {
         tpc = myParent.Find("ThirdPersonCamera").GetComponent<CameraFollow>();
 
         //finds the court which is used to refer to all the game specifics
-        court = GameObject.FindGameObjectWithTag("Court").GetComponent<CourtScript>();
+        court = GameObject.FindGameObjectWithTag("CourtController").GetComponent<CourtScript>();
 
         //finds the ball and ball actiioins
         vBall = GameObject.FindGameObjectWithTag("Ball").GetComponent<VolleyballScript>();
@@ -412,7 +414,7 @@ public class SpecialAction : MonoBehaviour {
             aimDir = aimDir.normalized;
 
             //set the current power to a dummy number so mainly used for the predictions
-            power = MaxPower * .35f;
+            power = MaxPower * minimumPower*1.5f;
 
             //reset the spin so that the previous hit has no affect on the current one
             ballSpin = Vector2.up;
@@ -428,7 +430,10 @@ public class SpecialAction : MonoBehaviour {
             //if you are a computer go straight to the power calculations
             if (Input.GetButtonDown("Fire") || !isPlayer)
             {
-                SetAimed(true);
+                if (isPlayer)
+                    SetAimed(true);
+                else
+                    aimed = true;
                 pastBallVelocity = vBall.rb.velocity;
                 vBall.ResetMotion();
                 originAimDir = aimDir;
@@ -455,6 +460,8 @@ public class SpecialAction : MonoBehaviour {
         
         //reset the aim direction to the direction that you originally aimed at
         aimDir = originAimDir;
+
+        float runHitConst = court.serve ? 1 : 10;
         
         //if you are the player then allow for you to change the power and spin the ball
         if (isPlayer)
@@ -482,11 +489,11 @@ public class SpecialAction : MonoBehaviour {
             else
             {
                 //add more force to the hit
-                aimDir *= smashConst;
+                aimDir *= (smashConst + myLastVelocity.magnitude/ runHitConst);
 
                 //use the mouse scroll to control the amount of forward spin on the ball
                 if(ballSpin.y > 1.1f)
-                    ballSpin.y -= (Input.mouseScrollDelta.y) * smashScrollSpeed;
+                    ballSpin.y -= (Input.mouseScrollDelta.y) * smashScrollSpeed * (1 + myLastVelocity.magnitude/ runHitConst);
                 
                 //when there no forward spin use the mouse scroll to control the strength of the
                 //floater randomness
@@ -496,8 +503,8 @@ public class SpecialAction : MonoBehaviour {
                 //set the max and min parts of the vertical spin
                 if (ballSpin.y < 0)
                     ballSpin.y = 0;
-                else if (ballSpin.y > maxSpin + 1)
-                    ballSpin.y = maxSpin + 1;
+                else if (ballSpin.y > (maxSpin* (1 + myLastVelocity.magnitude/ runHitConst) + 1))
+                    ballSpin.y = maxSpin * (1 + myLastVelocity.magnitude/ runHitConst) + 1;
             }
             //when the ball is lower, add an inherent arc to the hit
             aimDir.y += Mathf.Sign(aimDir.y) * Mathf.Exp(Mathf.Abs(vBall.rb.transform.position.y) * -1 / tau) / divisionFactor;
@@ -568,6 +575,8 @@ public class SpecialAction : MonoBehaviour {
             if (isPlayer)
             {
                 transform.parent = null;
+                myLastVelocity = controller.rb.velocity;
+                myLastVelocity.Scale(new Vector3(1, 0, 1));
                 controller.rb.velocity = Vector3.zero;
                 controller.enabled = false;
             }

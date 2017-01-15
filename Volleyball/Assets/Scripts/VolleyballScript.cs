@@ -16,7 +16,7 @@ public class VolleyballScript : MonoBehaviour {
     float samePlayerCount;
     float samePlayerCooldown = .1f;
     CourtScript court;
-    int touches;
+    int touches = 0;
     
     [SerializeField]
     Vector2 spin;
@@ -41,6 +41,9 @@ public class VolleyballScript : MonoBehaviour {
     [SerializeField]
     float stepSpeed = 0.1f;
     float noisePosition = 0;
+
+    bool endServe;
+    bool lastHitByServer;
 	// Use this for initialization
 	void Start () {
         
@@ -57,8 +60,8 @@ public class VolleyballScript : MonoBehaviour {
         rb = GetComponent<Rigidbody>();
 
         //this will refer back to game specific things
-        court = GameObject.FindGameObjectWithTag("Court").GetComponent<CourtScript>();
-        
+        court = GameObject.FindGameObjectWithTag("CourtController").GetComponent<CourtScript>();
+
         //this is used so that the ball will spin with a velocity of more than 1 rotation per second
         rb.maxAngularVelocity = maxAngularVelocity;
     }
@@ -67,7 +70,7 @@ public class VolleyballScript : MonoBehaviour {
 	void Update () {
         
         //if you go off the map respawn on the map
-        if (transform.position.y < 0f || transform.position.y > 30)
+        if (transform.position.y < -5.0f || transform.position.y > 30)
         {
             rb.MovePosition(new Vector3(transform.position.x, 5, transform.position.z));
             rb.velocity = rb.velocity / 10f;
@@ -89,31 +92,18 @@ public class VolleyballScript : MonoBehaviour {
     }
 
 
-    //collisions with the objects other than players
-    void OnCollionEnter(Collision other)
-    {
-        //will eventually be used for ending a rally
-        if(!court.rallyOver)
-        {
-            if (other.transform.gameObject.layer == LayerMask.NameToLayer("Ground"))
-            {
-                grounded = true;
-            }
-        }
-
-        //if currently colliding with the player then go through all the player collision checks
-        if(other.transform.tag == "Player")
-        {
-            SpecialAction currentPlayer = other.transform.GetComponent<SpecialAction>();
-            CollideWithPlayer(currentPlayer);
-        }
-    }
+    
 
     //Adds an initial force to the ball, and sets up no spin
     public void Shoot(Vector3 force, Transform reference)
     {
         SetSpin(Vector2.up, reference);
         rb.AddForce(force);
+        if (endServe)
+        {
+            court.serve = false;
+            lastHitByServer = true;
+        }
     }
 
     //Adds an initial force to the ball, and sets up a spin
@@ -181,14 +171,15 @@ public class VolleyballScript : MonoBehaviour {
             if (samePlayerCount >= samePlayerCooldown)
             {
                 //if you are the server then declare that the serve is now over
+                //when the player hits the ball
                 if (court.serve && currentPlayer.currentPosition == 1)
                 {
-                    court.serve = false;
+                    endServe = true;
                 }
                 //if your not the server than its a penalty
                 else
                 {
-                    court.UpdateScore(court.OppositeSide(currentPlayer.currentSide));
+                    court.CourtRules.ReportDoubleTouch(currentPlayer.currentSide);
                 }
             }
         }
@@ -203,6 +194,12 @@ public class VolleyballScript : MonoBehaviour {
             //the side has touched the ball
             else
                 touches = 1;
+            if(touches > Rules.maxNumberOfHits)
+            {
+                court.CourtRules.ReportMaxNumberHit(currentPlayer.currentSide);
+            }
+            if (lastHitByServer)
+                lastHitByServer = false;
         }
         //no more spin calculations
         currentAdditions = maxAdditions;
@@ -285,9 +282,36 @@ public class VolleyballScript : MonoBehaviour {
     }
 
     //on collision with anything reset the spin of the ball
+    //collisions with the objects other than players
     void OnCollisionEnter(Collision other)
     {
-        ZeroMotion();
+        
+
+        //if currently colliding with the player then go through all the player collision checks
+        if (other.transform.tag == "Player")
+        {
+            SpecialAction currentPlayer = other.transform.GetComponentInChildren<SpecialAction>();
+            if(currentPlayer != null)
+                CollideWithPlayer(currentPlayer);
+            return;
+        }
+        //if the ball that was served hit the net the report a net serve
+        else if(other.transform.tag == "Net")
+        {
+            if(lastHitByServer)
+            {
+                court.CourtRules.ReportNetServe(previousPlayer.currentSide);
+            }
+        }
+        //will eventually be used for ending a rally
+        else if (!court.rallyOver)
+        {
+            if (previousPlayer != null)
+            {
+                court.CourtRules.ReportGroundedOut(rb.position, other.transform.tag != "Court", previousPlayer.currentSide);
+            }
+            currentAdditions = maxAdditions;
+        }
     }
 
     //reset the spin of the ball

@@ -58,19 +58,36 @@ public class InGameUI : MonoBehaviour {
                 break;
             case "Options":
                 currentlyActive = you.transform.parent.parent.Find("Options List").gameObject;
-                
+                currentlyActive.SetActive(true);
                 break;
             case "Camera":
                 //you.transform.parent.gameObject.SetActive(true);
                 you.transform.parent.parent.Find("Options ScrollView").gameObject.SetActive(true);
                 currentlyActive = you.transform.parent.parent.Find("Options ScrollView/Panel/Camera ScrollView").gameObject;
+                currentlyActive.SetActive(true);
+                break;
+            case "Back Options ScrollView":
+                you.transform.parent.gameObject.SetActive(true);
+                you.transform.parent.parent.gameObject.SetActive(false);
+                currentlyActive.SetActive(false);
                 break;
             default:
                 
                 print("Don't have a case for " + you.name + " yet");
                 break;
         }
-        currentlyActive.SetActive(true);
+        
+    }
+
+    public void Disable(GameObject you)
+    {
+        you.transform.parent.gameObject.SetActive(false);
+    }
+
+    public void Enable(GameObject them)
+    {
+        them.SetActive(true);
+        currentlyActive = them;
     }
 
     public void SetToggleMenu(bool toggle, SpecialAction you)

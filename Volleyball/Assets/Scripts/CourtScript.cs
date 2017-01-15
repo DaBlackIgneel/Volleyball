@@ -12,12 +12,18 @@ public class CourtScript : MonoBehaviour {
     public bool rallyOver;
     public float waitTime = 5;
     public bool readyToServe;
-    float currentTime;
+    public Rules CourtRules { get { return courtRules; } }
+    public bool onlyServes;
+    public bool onlyReceives;
 
+    float currentTime;
+    float normalServeWaitTime = 5;
+    float quickServeWaitTime = 1;
     bool resetPositions;
     string LeftSideName = "LeftSide";
     string RightSideName = "RightSide";
 
+    Rules courtRules;
     GameObject[] people;
     SpecialAction[] players;
     VolleyballScript ball;
@@ -28,6 +34,9 @@ public class CourtScript : MonoBehaviour {
     {
         //find all players in the game
         people = GameObject.FindGameObjectsWithTag("Player");
+
+        //Gets the rules of the game
+        courtRules = GetComponent<Rules>();
 
         //used for a pause in the game 
         //example: after a rally is over the is a small wait time of a 
@@ -112,6 +121,15 @@ public class CourtScript : MonoBehaviour {
         readyToServe = false;
     }
 
+    public void UpdateScore(Side wonVolley, string reason)
+    {
+        if (!rallyOver)
+        {
+            print(reason);
+            UpdateScore(wonVolley);
+        }
+    }
+
     //stops each player from continuing the game
     void EndRally()
     {
@@ -159,5 +177,31 @@ public class CourtScript : MonoBehaviour {
         //move ball to the server
         ball.transform.position = server.transform.position + server.transform.parent.forward * .5f + Vector3.up * 1f;
         currentTime = 0;
+    }
+
+    public void Display(string message)
+    {
+
+    }
+
+    public void SetOnlyServes(bool value)
+    {
+        onlyServes = value;
+        if (value)
+        {
+            waitTime = quickServeWaitTime;
+            courtRules.EnableGroundOut(true);
+        }
+            
+
+    }
+    public void SetOnlyReceives(bool value)
+    {
+        onlyReceives = value;
+        if (value)
+        {
+            waitTime = quickServeWaitTime;
+            courtRules.EnableGroundOut(true);
+        }
     }
 }
