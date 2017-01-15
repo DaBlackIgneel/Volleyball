@@ -1,7 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2015
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Volleyball.Plugins", "Volleyball.Plugins.csproj", "{42BEF52B-0F9F-A2C3-B18A-F198B05431D4}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Volleyball", "Volleyball.csproj", "{A6F71C4C-8531-7CA5-4681-FCC39C863344}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Volleyball.Editor.Plugins", "Volleyball.Editor.Plugins.csproj", "{A76C9262-A935-E5EB-5341-631F6E755CB4}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -9,10 +13,18 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{42BEF52B-0F9F-A2C3-B18A-F198B05431D4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{42BEF52B-0F9F-A2C3-B18A-F198B05431D4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{42BEF52B-0F9F-A2C3-B18A-F198B05431D4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{42BEF52B-0F9F-A2C3-B18A-F198B05431D4}.Release|Any CPU.Build.0 = Release|Any CPU
 		{A6F71C4C-8531-7CA5-4681-FCC39C863344}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{A6F71C4C-8531-7CA5-4681-FCC39C863344}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A6F71C4C-8531-7CA5-4681-FCC39C863344}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A6F71C4C-8531-7CA5-4681-FCC39C863344}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A76C9262-A935-E5EB-5341-631F6E755CB4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A76C9262-A935-E5EB-5341-631F6E755CB4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A76C9262-A935-E5EB-5341-631F6E755CB4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A76C9262-A935-E5EB-5341-631F6E755CB4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
