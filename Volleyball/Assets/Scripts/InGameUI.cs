@@ -39,6 +39,7 @@ public class InGameUI : MonoBehaviour {
             currentlyActive.SetActive(false);
             switch(currentlyActive.name)
             {
+                case "Training Options":
                 case "Camera ScrollView":
                     currentlyActive.transform.parent.parent.gameObject.SetActive(false);
                     break;

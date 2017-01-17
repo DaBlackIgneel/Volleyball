@@ -17,9 +17,11 @@ public class PlayerMovement : MonoBehaviour {
     public Rigidbody rb;
     CapsuleCollider myCollider;
     CollisionFlags m_CollisionFlags;
+    SpecialAction myPass;
 
 	// Use this for initialization
 	void Start () {
+        myPass = GetComponentInChildren<SpecialAction>();
         //the component that controlls the physics of this object
         rb = GetComponent<Rigidbody>();
 
@@ -95,4 +97,6 @@ public class PlayerMovement : MonoBehaviour {
         }
         
     }
+
+    
 }

@@ -13,6 +13,8 @@ GameObject:
   - component: {fileID: 82232761701725522}
   - component: {fileID: 114197083980575606}
   - component: {fileID: 114294934989906248}
+  - component: {fileID: 136033542278908974}
+  - component: {fileID: 114739170971800406}
   m_Layer: 0
   m_Name: FPSController
   m_TagString: Player
@@ -478,7 +480,7 @@ Rigidbody:
   m_IsKinematic: 0
   m_Interpolate: 0
   m_Constraints: 80
-  m_CollisionDetection: 0
+  m_CollisionDetection: 1
 --- !u!65 &65390742879535484
 BoxCollider:
   m_ObjectHideFlags: 1
@@ -630,7 +632,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   look: 1
   axes: 1
-  sensitivityX: 1.5
+  sensitivityX: 0.8
   sensitivityY: 3
   smoothX: 1
   smoothY: 0.1
@@ -654,11 +656,23 @@ MonoBehaviour:
   offset: 2
   zoomSensitivity: 0.5
   zoomSmooth: 0.1
+  followSmooth: 0.25
   baseReferencePosition: {x: 0, y: -0.54, z: 1.44}
   basePosition: {x: 0, y: 0, z: 0}
   deltaPosition: {x: 0, y: 0, z: 0}
   baseAngle: 0
   currentAngle: 0
+--- !u!114 &114739170971800406
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 100000}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 97707b428b8d62f419ee098a28207339, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!114 &114877122598522966
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -673,7 +687,7 @@ MonoBehaviour:
   look: 1
   axes: 2
   sensitivityX: 3
-  sensitivityY: 1.5
+  sensitivityY: 1.45
   smoothX: 0.1
   smoothY: 0.567
   minimumX: -360
@@ -695,7 +709,7 @@ MonoBehaviour:
   minimumPower: 0.1
   currentPosition: 1
   isPlayer: 1
-  VolleyballSide: -1
+  currentSide: -1
   tau: 0.5
   divisionFactor: 100
   lobConst: 0.45
@@ -710,6 +724,9 @@ MonoBehaviour:
   ballSpin: {x: 0, y: 0}
   smashScrollSpeed: 0.5
   lobScrollSpeed: 0.25
+  serveStage: 0
+  aimHeight: 1.1
+  servePower: 0.75
 --- !u!124 &124523103408098756
 Behaviour:
   m_ObjectHideFlags: 1
@@ -717,6 +734,19 @@ Behaviour:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1511793546093596}
   m_Enabled: 1
+--- !u!136 &136033542278908974
+CapsuleCollider:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 100000}
+  m_Material: {fileID: 0}
+  m_IsTrigger: 1
+  m_Enabled: 1
+  m_Radius: 0.63
+  m_Height: 1.88
+  m_Direction: 1
+  m_Center: {x: 0, y: 1.41, z: 0.19}
 --- !u!136 &136589267542259374
 CapsuleCollider:
   m_ObjectHideFlags: 1
@@ -738,7 +768,7 @@ CapsuleCollider:
   m_GameObject: {fileID: 1640279575215804}
   m_Material: {fileID: 0}
   m_IsTrigger: 1
-  m_Enabled: 1
+  m_Enabled: 0
   m_Radius: 0.82
   m_Height: 2.16
   m_Direction: 1

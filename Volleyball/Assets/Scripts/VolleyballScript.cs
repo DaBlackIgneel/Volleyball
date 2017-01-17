@@ -230,6 +230,8 @@ public class VolleyballScript : MonoBehaviour {
     {
         previousPlayer = null;
         ResetMotion();
+        samePlayerCount = 0;
+        endServe = false;
 
     }
 

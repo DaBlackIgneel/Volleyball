@@ -28,12 +28,15 @@ public class CourtScript : MonoBehaviour {
     SpecialAction[] players;
     VolleyballScript ball;
     SpecialAction server;
-
+    [System.NonSerialized]
+    public GameObject net;
     // Use this for initialization
     void Start ()
     {
         //find all players in the game
         people = GameObject.FindGameObjectsWithTag("Player");
+
+        net = GameObject.FindGameObjectWithTag("Net");
 
         //Gets the rules of the game
         courtRules = GetComponent<Rules>();
@@ -91,13 +94,18 @@ public class CourtScript : MonoBehaviour {
         {
             position = transform.Find(sideName).Find("ServePosition").position;
             server = currentPlayer;
-            server.SetMovementEnabled(true);
+            //server.SetMovementEnabled(true);
+            
         }
         //if the current player is not serving than transport them to their corresponding positions
         else
         {
             position = transform.Find(sideName).Find(sideName + " (" + positionNumber + ")").position;
             
+        }
+        if (currentPlayer.isPlayer)
+        {
+            currentPlayer.SetMovementEnabled(true);
         }
         position += transform.position;
         position.y = 0;
@@ -191,6 +199,7 @@ public class CourtScript : MonoBehaviour {
         {
             waitTime = quickServeWaitTime;
             courtRules.EnableGroundOut(true);
+            serveSide = Side.Left;
         }
             
 
@@ -202,6 +211,7 @@ public class CourtScript : MonoBehaviour {
         {
             waitTime = quickServeWaitTime;
             courtRules.EnableGroundOut(true);
+            serveSide = Side.Right;
         }
     }
 }
