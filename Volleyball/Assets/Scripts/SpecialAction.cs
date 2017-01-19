@@ -6,7 +6,12 @@ using UnityStandardAssets.Characters;
 public enum Side { Left = -1, Right = 1}
 
 public class SpecialAction : MonoBehaviour {
-    [Range(500, 2000)]
+    public float tester1;
+    public float tester2;
+    public float tester3;
+    public float yScale;
+
+    [Range(0, 2000)]
     public float MaxPower = 1000;
     [Range(0.001f,.99f)]
     public float minimumPower = .25f;
@@ -61,9 +66,12 @@ public class SpecialAction : MonoBehaviour {
     float hitCooldown = 1;
     float normalHitCooldown = 1;
     float serveHitCooldown = .1f;
-    [SerializeField] float hitTime = 0;
+    float hitTime = 0;
+    float hitTimer = 0;
+    float maxHitTime = 5;
+
     bool slowDown;
-    float slowTimeScale = .001f;
+    float slowTimeScale = .01f;
 
     float power = 1;
     
@@ -94,6 +102,7 @@ public class SpecialAction : MonoBehaviour {
     [SerializeField]
     [Range(0.1f, 4)]
     float smashScrollSpeed = .5f;
+    bool cancelAim;
 
     [SerializeField]
     [Range(0.01f, 2)]
@@ -115,6 +124,7 @@ public class SpecialAction : MonoBehaviour {
     Vector2 squatTriggerHeightY;
 
     Vector3 myLastVelocity;
+    bool hittable;
 
     //computer variables
     bool decided;
@@ -133,6 +143,7 @@ public class SpecialAction : MonoBehaviour {
     float servePower = .75f;
 
     CapsuleCollider[] myColliders;
+    Vector3 startingPosition;
 
     // Use this for initialization
     void Start () {
@@ -145,10 +156,6 @@ public class SpecialAction : MonoBehaviour {
         if (isPlayer)
         {
             myColliders = myParent.GetComponents<CapsuleCollider>();
-            foreach (CapsuleCollider cc in myColliders)
-            {
-                print(cc.isTrigger);
-            }
         }
         //the component that controlls the physics of this player
         rb = myParent.GetComponent<Rigidbody>();
@@ -215,13 +222,14 @@ public class SpecialAction : MonoBehaviour {
         //the predefined crouch heights for the mesh, collider, and the collider for the ball
         squatColliderHeightY = new Vector2(1, 0.5f);
         squatMeshHeightY = new Vector2(0.5f, 0.5f);
-        squatTriggerHeightY = new Vector2((originMeshHeightY.x - squatMeshHeightY.x + 1) * originTriggerHeightY.x, originTriggerHeightY.y - .5f);
+        squatTriggerHeightY = new Vector2((originMeshHeightY.x - squatMeshHeightY.x + 2) * originTriggerHeightY.x, originTriggerHeightY.y - 1.5f);
         if(isPlayer)
             squatTriggerHeightY = new Vector2(originTriggerHeightY.x, originTriggerHeightY.y-.75f);
         //gets a reference to the menu
         gameUI = GameObject.FindGameObjectWithTag("EventSystem").GetComponent<InGameUI>();
 
         myLastVelocity = Vector3.zero;
+        startingPosition = Vector3.zero;
     }
 
     // Update is called once per frame
@@ -277,12 +285,37 @@ public class SpecialAction : MonoBehaviour {
 
             //if you are in the process of hitting the ball, then allow the player to
             //aim and hit the ball
+            if (hittable && !hitting)
+            {
+                if (Input.GetButton("Fire") || Input.GetButtonDown("Fire"))
+                {
+                    hitting = true;
+                    slowDown = true;
+                    if (slowDown)
+                    {
+                        Time.timeScale = slowTimeScale;
+                        Time.fixedDeltaTime = regFixedTimeDelta * Time.timeScale;
+                    }
+                    myLastVelocity = rb.velocity;
+                }
+            }
             if (hitting)
             {
                 if (isPlayer)
+                {
                     Aim();
+                    hitTimer += regFixedTimeDelta;
+                }
                 else
                     DecideShot();
+            }
+            else
+            {
+                hitTimer = 0;
+            }
+            if(hitTimer >= maxHitTime && !court.readyToServe)
+            {
+                EndHit();
             }
 
             //allow yourself to start blocking
@@ -375,7 +408,7 @@ public class SpecialAction : MonoBehaviour {
         {
             //toss the ball in the air
             if(waitCount > waitServeCooldown)
-                RunningServe();
+                SpinServe();
             else
             {
                 waitCount += Time.fixedDeltaTime;
@@ -498,6 +531,43 @@ public class SpecialAction : MonoBehaviour {
             smash = true;
             ComputerHit();
             
+        }
+    }
+
+    void SpinServe()
+    {
+
+        if (serveStage == 0)
+        {
+            hitTime = hitCooldown + 1;
+            court.GiveBallToServer();
+            aimAngle = Random.Range(10, 20) * Mathf.Deg2Rad;
+            serveStage = 1;
+        }
+        //toss the ball up in the air
+        else if (serveStage == 1)
+        {
+            if (hitting)
+            {
+                originAimDir = Vector3.up;
+                power = MaxPower * .5f;
+                ballSpin = Vector2.up;
+                serveStage = 2;
+                smash = false;
+                ComputerHit();
+            }
+        }
+        else if (serveStage == 3)
+        {
+            originAimDir = (Mathf.Cos(aimAngle) * transform.forward - Mathf.Sin(aimAngle) * transform.right) * Mathf.Sqrt(5) + transform.up;//* .85f;
+            originAimDir = originAimDir.normalized;
+            power = MaxPower * .9f;
+            ballSpin = Vector2.up * Random.Range(1.1f,maxSpin + 1) + Vector2.right *  Random.Range(maxSpin, maxSpin);
+            decided = false;
+            serveStage = 4;
+            smash = true;
+            ComputerHit();
+
         }
     }
 
@@ -635,9 +705,9 @@ public class SpecialAction : MonoBehaviour {
     {
         //make sure that the mouse is visible
         Cursor.visible = true;
-
+        startingPosition = vBall.rb.position;
         //if you are not finished aiming than aim the ball
-        if(!aimed)
+        if (!aimed)
         {
             //set the default direction (mainly used by the computer)
             Ray mousePoint = new Ray(Vector3.zero,Vector3.forward * ((float)currentSide) * -1 + Vector3.up);
@@ -669,9 +739,14 @@ public class SpecialAction : MonoBehaviour {
                 aimDir.y *= vBall.rb.mass;
             }
 
+            if(cancelAim && !Input.GetButton("Fire"))
+            {
+                cancelAim = false;
+            }
+
             //if you have left clicked then begin power calculations 
             //if you are a computer go straight to the power calculations
-            if (Input.GetButtonDown("Fire") || !isPlayer || Input.GetButton("Fire"))
+            if ((Input.GetButtonDown("Fire") || Input.GetButton("Fire"))&& !cancelAim || !isPlayer)
             {
                 if (isPlayer)
                     SetAimed(true);
@@ -704,7 +779,7 @@ public class SpecialAction : MonoBehaviour {
         //reset the aim direction to the direction that you originally aimed at
         aimDir = originAimDir;
 
-        float runHitConst = court.serve ? 1 : 10;
+        float runHitConst = court.serve ? 2 : 10;
         
         //if you are the player then allow for you to change the power and spin the ball
         if (isPlayer)
@@ -761,6 +836,7 @@ public class SpecialAction : MonoBehaviour {
         {
             SetAimed(false);
             vBall.rb.velocity = pastBallVelocity;
+            cancelAim = true;
             return;
         }
 
@@ -794,49 +870,84 @@ public class SpecialAction : MonoBehaviour {
     //add force and spin to the ball
     void ShootBall()
     {
+        vBall.CollideWithPlayer(this);
         vBall.Shoot(aimDir * power,ballSpin, myParent);
+        rb.velocity = Vector3.zero;
+        //if the court says that your ready to serve then tell them that you are currently
+        //serving
+        if (court.readyToServe)
+            court.readyToServe = false;
     }
 
 
     //when the ball hits the collider that controls ball interactions then start the hitting the ball
     public void MyTriggerEnter(Collider other)
     {
+        
+    }
+
+    void OnTriggerEnter(Collider other)
+    {
         //if the player is colliding with the ball and it the hit cooldown is over, and the rally 
         //is still ongoing then hit the ball
-
-        if (((hitTime > hitCooldown && !court.rallyOver)) && !hitting)
+        if(other.tag == "Ball")
         {
-            hitting = true;
-            slowDown = true;
-            if (slowDown)
+            if (((hitTime > hitCooldown && !court.rallyOver)) && !hitting)
             {
-                Time.timeScale = slowTimeScale;
-                Time.fixedDeltaTime = regFixedTimeDelta * Time.timeScale;
+                print("Can Hit the Ball");
+                hittable = true;
+                if(court.readyToServe)
+                {
+                    hitting = true;
+                    slowDown = true;
+                    if (slowDown)
+                    {
+                        Time.timeScale = slowTimeScale;
+                        Time.fixedDeltaTime = regFixedTimeDelta * Time.timeScale;
+                    }
+                    myLastVelocity = rb.velocity;
+                    myLastVelocity.Scale(new Vector3(1.1f, 0, 1.1f));
+
+                    rb.velocity = Vector3.zero;
+                }
+                
+
+                //makes it so that the player body doesn't rotate while your aiming
+                /*if (isPlayer)
+                {
+                    transform.parent = null;
+                    controller.enabled = false;
+
+                }*/
+
+                
+
+                //tell the ball that you where the last player to hit it
+                
             }
-            myLastVelocity = rb.velocity;
-            myLastVelocity.Scale(new Vector3(1.1f, 0, 1.1f));
 
-            rb.velocity = Vector3.zero;
-
-            //makes it so that the player body doesn't rotate while your aiming
-            if (isPlayer)
-            {
-                transform.parent = null;
-                controller.enabled = false;
-
-            }
-
-            //if the court says that your ready to serve then tell them that you are currently
-            //serving
-            if (court.readyToServe)
-                court.readyToServe = false;
-
-            //tell the ball that you where the last player to hit it
-            vBall.CollideWithPlayer(this);
+        }
+        
+    }
+    void OnTriggerExit()
+    {
+        if(!hitting)
+        {
+            hittable = false;
         }
     }
 
-    #endregion
+    void EndHit()
+    {
+        hittable = false;
+        if(hitting)
+        {
+            hitting = false;
+            hitTimer = 0;
+            ReturnSpeedToNormal();
+        }
+    }
+        #endregion
 
     #region Reseting
 
@@ -854,6 +965,7 @@ public class SpecialAction : MonoBehaviour {
 
         //starts the cooldown for hiting the ball
         hitTime = 0;
+        hitTimer = 0;
 
         //if the player is not a computer then enable movement
         if (isPlayer)
@@ -928,8 +1040,8 @@ public class SpecialAction : MonoBehaviour {
         if(mySystem.particleCount > 0)
         {
             //increase the distance between the particles as the power increases
-            float powerConst = 7 *power / MaxPower / 10 * 30/ mySystem.particleCount;
-
+            //float powerConst = 7 *power / MaxPower / 10 * 30/ mySystem.particleCount;
+            float powerConst = power / MaxPower * 7 * 30 / mySystem.particleCount;
             float time = 0;
 
             //used to calculate the position of a floater hit (not always accurate
@@ -939,11 +1051,8 @@ public class SpecialAction : MonoBehaviour {
                 
                 time = powerConst * regFixedTimeDelta;
                 //calculate the the position of where the ball is going to be at a specific point in time for each particle
-                myParticle[i].position = vBall.rb.position + PredictAddedForce(i * time) + PredictGravity(i * time) + PredictSpin(time, i, ref floaterRef);
-                if((vBall.rb.position - myParticle[i].position).magnitude > (vBall.rb.position - court.net.transform.position).magnitude)
-                {
-                    
-                }
+                myParticle[i].position = startingPosition + PredictAddedForce(i * time) + PredictGravity(i * time) + PredictSpin(time, i, ref floaterRef);
+                myParticle[i].remainingLifetime = 100000;
             }
 
             //move the particles to the predicted position
@@ -955,34 +1064,73 @@ public class SpecialAction : MonoBehaviour {
     //predict the affect of the force onto the ball
     Vector3 PredictAddedForce(float time)
     {
-        return (aimDir * power / vBall.rb.mass / 3.75f) * time;
+        return aimDir * power / vBall.rb.mass * time;
+        //return (Vector3.Scale(aimDir,new Vector3(1,1/yScale,1)) * power / vBall.rb.mass / tester1) * time; //3.75f
     }
 
     //predict the affect of gravity on the ball
     Vector3 PredictGravity(float time)
     {
-        return -10 * Vector3.Scale(Physics.gravity, Physics.gravity) * Mathf.Pow(time, 2);
+        return Physics.gravity * Mathf.Pow(time, 2) * .5f;
+        //return -tester2 * Vector3.Scale(Physics.gravity, Physics.gravity) * Mathf.Pow(time, 2); //-10
     }
 
     //predict the affect of the spin on the ball
     Vector3 PredictSpin(float time, int i, ref Vector3 floaterRef)
     {
-        
+
         Vector3 predictedSpin = Vector3.zero;
         //if the ball has spin predict where it will go
         if (ballSpin.y >= 1)
         {
-            float rate = (1 - Mathf.Pow(vBall.SpinAddConst, time * i / regFixedTimeDelta)) / (1 - vBall.SpinAddConst) * 1.75f;
-            predictedSpin = Vector3.Scale(ballSpin - Vector2.up, -Vector3.up * rate + Vector3.right * rate) * time * i;
+            Vector3 tempSpin = (ballSpin.y - 1) * -Vector3.up + ballSpin.x * transform.right;
+            float iteration = time * i / regFixedTimeDelta;
+
+            float rate;
+            if (iteration < 50)
+            {
+                rate = (1 - Mathf.Pow(vBall.SpinAddConst, iteration)) / (1 - vBall.SpinAddConst) - 1f;
+                floaterRef.x += Mathf.Pow(vBall.SpinAddConst, iteration) * (iteration - 1) * regFixedTimeDelta;
+                floaterRef.y = time * (i) / regFixedTimeDelta;
+            }
+            else
+            {
+                rate = (1 - Mathf.Pow(vBall.SpinAddConst, floaterRef.y)) / (1 - vBall.SpinAddConst) - 1f;
+                //rate += (iteration - 50) * Mathf.Pow(vBall.SpinAddConst, 50);
+                //floaterRef.x += Mathf.Pow(vBall.SpinAddConst, 50) * (iteration - 1) * regFixedTimeDelta;
+            }
+
+            float floaterConst = (1 - Mathf.Exp(-1 * 4f * (power / MaxPower))) * (1 + Mathf.Pow(power / MaxPower, 2));
+            predictedSpin = tempSpin * Mathf.Abs(time * i * rate - floaterRef.x * floaterConst) / 100;// - floaterRef.x/100); //- (rate * tempSpin - vBall.SpinAddConst * tempSpin);
+
+            //float rate = (1 - Mathf.Pow(vBall.SpinAddConst, time * i / regFixedTimeDelta)) / (1 - vBall.SpinAddConst);
+            //predictedSpin = ((ballSpin.y - 1) * -Vector3.up + ballSpin.x * transform.right ) * Mathf.Pow(time * i, 2) * rate / (100 * vBall.rb.mass);
+            //predictedSpin = (-Vector3.up * (ballSpin.y - 1) + myParent.right * ballSpin.x) * rate * time * i / vBall.rb.mass; //Vector3.Scale(ballSpin.y * Vector3.up + ballSpin.x * myParent.right - Vector3.up, -Vector3.up * rate + myParent.right * rate) * time * i;
         }
         //if the ball is a floater then predict where it will go
         else
         {
-            predictedSpin = (Vector3.up * vBall.GetFloater(time * i / regFixedTimeDelta, ballSpin.y, Direction.Y) + Vector3.right * vBall.GetFloater(time * i/ regFixedTimeDelta, ballSpin.y, Direction.X)) * time*40;
+            predictedSpin = (Vector3.up * vBall.GetFloater(time * i / regFixedTimeDelta, ballSpin.y, Direction.Y) + Vector3.right * vBall.GetFloater(time * i / regFixedTimeDelta, ballSpin.y, Direction.X)) * time * vBall.rb.mass;
             predictedSpin += floaterRef;
             floaterRef = predictedSpin;
         }
         return predictedSpin;
     }
     #endregion
+
+    public bool GetHittable()
+    {
+        return hittable;
+    }
+
+    public float GetHitTimer()
+    {
+        float myTimer = 1 - hitTimer / maxHitTime;
+        if(myTimer < 0)
+        {
+            myTimer = 0;
+        }
+        return myTimer;
+    }
+    
 }

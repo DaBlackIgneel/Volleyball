@@ -44,6 +44,8 @@ public class VolleyballScript : MonoBehaviour {
 
     bool endServe;
     bool lastHitByServer;
+
+    Vector3 right;
 	// Use this for initialization
 	void Start () {
         
@@ -98,7 +100,7 @@ public class VolleyballScript : MonoBehaviour {
     public void Shoot(Vector3 force, Transform reference)
     {
         SetSpin(Vector2.up, reference);
-        rb.AddForce(force);
+        rb.AddForce(force,ForceMode.Impulse);
         if (endServe)
         {
             court.serve = false;
@@ -118,7 +120,9 @@ public class VolleyballScript : MonoBehaviour {
     void SetSpin(Vector2 spin, Transform reference)
     {
         this.spin = spin;
+        right = reference.right; 
         currentAdditions = 0;
+
         rb.AddTorque((reference.up * spin.x * 1 + reference.right * spin.y) * torqueConst);
     }
 
@@ -134,8 +138,8 @@ public class VolleyballScript : MonoBehaviour {
             //if your not doing a floater calculate the spin
             if (spin.y >= 1)
             {
-                spinAddition.y = -SpinCalculator(ref spin.y);
-                spinAddition.x = SpinCalculator(ref spin.x);
+                spinAddition.y = -SpinCalculator(ref spin.y, Direction.Y);
+                spinAddition.x = SpinCalculator(ref spin.x, Direction.X);
             }
             //if you are doing a floater calculate the floater air density affect
             else if (spin.y < 1)
@@ -145,19 +149,31 @@ public class VolleyballScript : MonoBehaviour {
             }
 
             //add the spin vector to the current velocity
-            rb.velocity += spinAddition;
+            //rb.velocity += spinAddition.y * Vector3.up + spinAddition.x * right;
+            rb.AddForce((spinAddition.y * Vector3.up + spinAddition.x * right) * rb.mass, ForceMode.Impulse);
             currentAdditions++;
         }
     }
 
-    float SpinCalculator(ref float mySpin)
+    float SpinCalculator(ref float mySpin, Direction dimension)
     {
         //exponentially increase the effect of the spin
         //exponent is very close to 1 so the effect is small but noticable
         //makes it so that at around the peak height of the ball, the spin
         //starts to make a big affect on the position of the ball
-        mySpin *= spinAddConst;
-        return mySpin/100f;
+        if(dimension == Direction.Y)
+        {
+            mySpin--;
+            mySpin *= spinAddConst;
+            mySpin++;
+            return (mySpin-1) / 100f;
+        }
+        else
+        {
+            mySpin *= spinAddConst;
+            return mySpin / 100f;
+        }
+        
     }
 
     //keeps track of collisions with players
