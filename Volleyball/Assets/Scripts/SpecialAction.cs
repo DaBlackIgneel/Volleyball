@@ -302,15 +302,9 @@ public class SpecialAction : MonoBehaviour {
             {
                 if (Input.GetButton("Fire") || Input.GetButtonDown("Fire"))
                 {
-                    hitting = true;
-                    slowDown = true;
-                    if (slowDown)
-                    {
-                        Time.timeScale = slowTimeScale;
-                        Time.fixedDeltaTime = regFixedTimeDelta * Time.timeScale;
-                    }
-                    myLastVelocity = rb.velocity;
+                    HitSetUp();
                 }
+                DecideShot();
             }
             if (hitting)
             {
@@ -409,6 +403,8 @@ public class SpecialAction : MonoBehaviour {
     {
         if(court.serve && currentPosition == 1 & court.serveSide == currentSide)
         {
+            if (hittable && !hitting)
+                hitting = true;
             PickServe();
         }
     }
@@ -426,7 +422,7 @@ public class SpecialAction : MonoBehaviour {
         {
             //toss the ball in the air
             if(waitCount > waitServeCooldown)
-                SpinServe();
+                RunningServe();
             else
             {
                 waitCount += Time.fixedDeltaTime;
@@ -467,15 +463,18 @@ public class SpecialAction : MonoBehaviour {
         }
         else if (serveStage == 4)
         {
-            originAimDir = (Mathf.Cos(aimAngle) * transform.forward - Mathf.Sin(aimAngle) * transform.right) * Mathf.Sqrt(5) - Vector3.up * 0.3f;
-            originAimDir = originAimDir.normalized;
-            power = MaxPower *.5f;
-            ballSpin = Vector2.up * (maxSpin * (1 + myLastVelocity.magnitude) + 1);
-            decided = false;
-            serveStage = 5;
-            smash = true;
-            ComputerHit();
-            runServe = false;
+            if(hittable)
+            {
+                originAimDir = (Mathf.Cos(aimAngle) * transform.forward - Mathf.Sin(aimAngle) * transform.right) * Mathf.Sqrt(5) - Vector3.up * 0.15f;
+                originAimDir = originAimDir.normalized;
+                power = MaxPower * .5f;
+                ballSpin = Vector2.up * (maxSpin * (1 + myLastVelocity.magnitude) + 1);
+                decided = false;
+                serveStage = 5;
+                smash = true;
+                ComputerHit();
+                runServe = false;
+            }
         }
     }
 
@@ -528,8 +527,9 @@ public class SpecialAction : MonoBehaviour {
         //toss the ball up in the air
         else if (serveStage == 1)
         {
-            if(hitting)
+            if(hittable)
             {
+                hitting = true;
                 originAimDir = Vector3.up;
                 power = MaxPower * .5f;
                 ballSpin = Vector2.up;
@@ -540,15 +540,17 @@ public class SpecialAction : MonoBehaviour {
         }
         else if(serveStage == 3)
         {
-            originAimDir = (Mathf.Cos(aimAngle) * transform.forward - Mathf.Sin(aimAngle) * transform.right) * Mathf.Sqrt(5) + transform.up * .85f;
-            originAimDir = originAimDir.normalized;
-            power = MaxPower * .9f;
-            ballSpin = Vector2.up;
-            decided = false;
-            serveStage = 4;
-            smash = true;
-            ComputerHit();
-            
+            if(hittable)
+            {
+                originAimDir = (Mathf.Cos(aimAngle) * transform.forward - Mathf.Sin(aimAngle) * transform.right) * Mathf.Sqrt(5) + transform.up*.82f;
+                originAimDir = originAimDir.normalized;
+                power = MaxPower;
+                ballSpin = Vector2.up;
+                decided = false;
+                serveStage = 4;
+                smash = true;
+                ComputerHit();
+            }
         }
     }
 
@@ -597,7 +599,7 @@ public class SpecialAction : MonoBehaviour {
     void ComputerHit()
     {
         aimDir = originAimDir;
-        float runHitConst = court.serve ? 1 : 10;
+        float runHitConst = court.serve ? 2 : 10;
         if (smash)
         {
             aimDir *= (smashConst + myLastVelocity.magnitude / runHitConst);
@@ -617,7 +619,7 @@ public class SpecialAction : MonoBehaviour {
         {
             if (vBall.rb.position.y > 6 && vBall.rb.position.y < 8 && vBall.rb.velocity.y < 0)
             {
-                rb.velocity = Vector3.up * 7;
+                rb.velocity = Vector3.up * 6;
                 if (!runServe)
                     serveStage = 3;
                 else
@@ -716,7 +718,6 @@ public class SpecialAction : MonoBehaviour {
             relativeAngle -= ((int)(relativeAngle / 360)) * 360;
             relativeAngle *= -1;
             Vector3 tempAxis = Vector3.up *  relativeAngle + Vector3.right * (Mathf.Atan2(rb.velocity.x, rb.velocity.z)) * Mathf.Rad2Deg + Vector3.forward * myParent.parent.eulerAngles.y;
-            print(tempAxis);
             Vector3 rotationAxis = Vector3.right * Mathf.Cos(relativeAngle * Mathf.Deg2Rad) + Vector3.forward * Mathf.Sin(relativeAngle * Mathf.Deg2Rad);
             myParent.localEulerAngles = (rotationAxis).normalized * 60;
             dive = true;
@@ -989,21 +990,13 @@ public class SpecialAction : MonoBehaviour {
             {
                 print("Can Hit the Ball");
                 hittable = true;
-                if(court.readyToServe)
+                myLastVelocity = rb.velocity;
+                if (court.readyToServe)
                 {
-                    hitting = true;
-                    slowDown = true;
-                    if (slowDown)
-                    {
-                        Time.timeScale = slowTimeScale;
-                        Time.fixedDeltaTime = regFixedTimeDelta * Time.timeScale;
-                    }
-                    myLastVelocity = rb.velocity;
-                    myLastVelocity.Scale(new Vector3(1.1f, 0, 1.1f));
-
+                    HitSetUp();
                     rb.velocity = Vector3.zero;
                 }
-                
+                myLastVelocity = rb.velocity;
 
                 //makes it so that the player body doesn't rotate while your aiming
                 /*if (isPlayer)
@@ -1013,15 +1006,30 @@ public class SpecialAction : MonoBehaviour {
 
                 }*/
 
-                
+
 
                 //tell the ball that you where the last player to hit it
-                
+
             }
 
         }
+    }
+
+    void HitSetUp()
+    {
+        hitting = true;
+        slowDown = true;
+        if (slowDown)
+        {
+            Time.timeScale = slowTimeScale;
+            Time.fixedDeltaTime = regFixedTimeDelta * Time.timeScale;
+        }
+        myLastVelocity = rb.velocity;
+        myLastVelocity.Scale(new Vector3(1.1f, 0, 1.1f));
+
         
     }
+
     void OnTriggerExit()
     {
         if(!hitting)
@@ -1050,6 +1058,7 @@ public class SpecialAction : MonoBehaviour {
         hitting = false;
         aimed = false;
         smash = false;
+        hittable = false;
 
         //returns time to normal
         slowDown = false;

@@ -23,11 +23,15 @@ public class CourtScript : MonoBehaviour {
     string LeftSideName = "LeftSide";
     string RightSideName = "RightSide";
 
+    float displayTimer = 1;
+    float displayTimerStep = .01f;
+
     Rules courtRules;
     GameObject[] people;
     SpecialAction[] players;
     VolleyballScript ball;
     SpecialAction server;
+    UnityEngine.UI.Text displayText;
     [System.NonSerialized]
     public GameObject net;
     // Use this for initialization
@@ -37,6 +41,8 @@ public class CourtScript : MonoBehaviour {
         people = GameObject.FindGameObjectsWithTag("Player");
 
         net = GameObject.FindGameObjectWithTag("Net");
+
+        displayText = GameObject.FindGameObjectWithTag("DisplayText").GetComponent<UnityEngine.UI.Text>();
 
         //Gets the rules of the game
         courtRules = GetComponent<Rules>();
@@ -77,6 +83,23 @@ public class CourtScript : MonoBehaviour {
         }
 	}
 
+    void FixedUpdate()
+    {
+
+        FadeDisplay();
+
+    }
+
+    void FadeDisplay()
+    {
+        if (displayTimer > Mathf.Epsilon)
+        {
+            Color temp = displayText.color;
+            temp.a = displayTimer;
+            displayText.color = temp;
+            displayTimer -= displayTimerStep;
+        }
+    }
 
     //get the starting position of each player
     public Vector3 GetPosition(int positionNumber, Side courtSide, SpecialAction currentPlayer)
@@ -133,7 +156,7 @@ public class CourtScript : MonoBehaviour {
     {
         if (!rallyOver)
         {
-            print(reason);
+            Display(reason);
             UpdateScore(wonVolley);
         }
     }
@@ -189,7 +212,8 @@ public class CourtScript : MonoBehaviour {
 
     public void Display(string message)
     {
-
+        displayText.text = message;
+        displayTimer = 1;
     }
 
     public void SetOnlyServes(bool value)
