@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public enum Direction { X, Y }
+public enum Direction { X, Y, Z }
 
 public class VolleyballScript : MonoBehaviour {
     public bool grounded;

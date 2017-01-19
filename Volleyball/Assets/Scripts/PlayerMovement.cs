@@ -13,6 +13,7 @@ public class PlayerMovement : MonoBehaviour {
     public float stickToGroundForce = 10;
     public bool isGrounded;
     public bool isWalking;
+    public Transform ground;
     [System.NonSerialized]
     public Rigidbody rb;
     CapsuleCollider myCollider;
@@ -50,7 +51,7 @@ public class PlayerMovement : MonoBehaviour {
         //shoots a ray down from the foot of the player
         //if it collides with something then there is ground
         //otherwise there is no ground
-        return Physics.Raycast(new Ray(transform.position, Vector3.down), .1f);
+        return Physics.Raycast(new Ray(ground.position, Vector3.down), .3f);
     }
 
     //Moves the player

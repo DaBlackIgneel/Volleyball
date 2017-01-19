@@ -59,7 +59,9 @@ public class SpecialAction : MonoBehaviour {
     Transform myParent;
 
     bool block;
+    bool blockOver;
     bool squat;
+    bool dive;
     bool hitting;
     bool aimed;
 
@@ -90,6 +92,8 @@ public class SpecialAction : MonoBehaviour {
 
     CourtScript court;
     Transform arms;
+    MyMouseLook rightArm;
+    MyMouseLook leftArm;
     CameraFollow tpc;
     Camera fpc;
     MyMouseLook cameraLook;
@@ -122,6 +126,10 @@ public class SpecialAction : MonoBehaviour {
     Vector2 squatColliderHeightY;
     Vector2 originTriggerHeightY;
     Vector2 squatTriggerHeightY;
+    Vector3 originalGroundPosition;
+    Vector3 squatGroundPosition;
+
+    Vector3 originalPosition;
 
     Vector3 myLastVelocity;
     bool hittable;
@@ -152,20 +160,21 @@ public class SpecialAction : MonoBehaviour {
 
         //gets the object over this object in the object heirarchy
         myParent = transform.parent;
-
         if (isPlayer)
         {
-            myColliders = myParent.GetComponents<CapsuleCollider>();
+            myColliders = myParent.parent.GetComponents<CapsuleCollider>();
         }
         //the component that controlls the physics of this player
-        rb = myParent.GetComponent<Rigidbody>();
+        rb = myParent.parent.GetComponent<Rigidbody>();
 
         //finds the arms used to block
-        arms = myParent.Find("Arms");
+        arms = myParent.parent.Find("Arms");
+        rightArm = arms.Find("RightArmPivot").GetComponent<MyMouseLook>();
+        leftArm = arms.Find("LeftArmPivot").GetComponent<MyMouseLook>();
 
         //finds the cameras for this player
-        fpc = myParent.Find("FirstPersonCamera").GetComponent<Camera>();
-        tpc = myParent.Find("ThirdPersonCamera").GetComponent<CameraFollow>();
+        fpc = myParent.parent.Find("FirstPersonCamera").GetComponent<Camera>();
+        tpc = myParent.parent.Find("ThirdPersonCamera").GetComponent<CameraFollow>();
 
         //finds the court which is used to refer to all the game specifics
         court = GameObject.FindGameObjectWithTag("CourtController").GetComponent<CourtScript>();
@@ -174,19 +183,19 @@ public class SpecialAction : MonoBehaviour {
         vBall = GameObject.FindGameObjectWithTag("Ball").GetComponent<VolleyballScript>();
 
         //Gets the movement part of the player
-        controller = myParent.GetComponent<PlayerMovement>();
+        controller = myParent.parent.GetComponent<PlayerMovement>();
 
         //Gets the script that controlls the horizontal movement of the camera
-        m_MouseLook = myParent.GetComponent<MyMouseLook>();
+        m_MouseLook = myParent.parent.GetComponent<MyMouseLook>();
 
         //gets the component that controlls the vertical movement of the camera
         cameraLook = tpc.GetComponent<MyMouseLook>();
 
         //Gets the the component that controlls the collision bounds
-        myCollider = myParent.GetComponent<CapsuleCollider>();
+        myCollider = myParent.parent.GetComponent<CapsuleCollider>();
 
         //gets the component that controlls the ball collisions
-        myTrigger = myParent.GetComponent<CapsuleCollider>();
+        myTrigger = myParent.parent.GetComponent<CapsuleCollider>();
         if (isPlayer)
             myTrigger = myColliders[myColliders.Length - 1];
 
@@ -211,22 +220,26 @@ public class SpecialAction : MonoBehaviour {
         hitTime = hitCooldown;
 
         //the component that controlls the amount of particles emmitted for the aiming
-        mySystem = myParent.GetComponentInChildren<ParticleSystem>();
+        mySystem = myParent.parent.GetComponentInChildren<ParticleSystem>();
         myBurst = new ParticleSystem.Burst[1];
 
         //the original heights for the mesh, collider, and collider for the ball
         originColliderHeightY = new Vector2(myCollider.height, myCollider.center.y);
         originMeshHeightY = new Vector2(transform.localScale.y, transform.localPosition.y);
         originTriggerHeightY = new Vector2(myTrigger.height, myTrigger.center.y);
+        originalGroundPosition = controller.ground.localPosition;
 
         //the predefined crouch heights for the mesh, collider, and the collider for the ball
-        squatColliderHeightY = new Vector2(1, 0.5f);
+        squatColliderHeightY = new Vector2(1,1f);
         squatMeshHeightY = new Vector2(0.5f, 0.5f);
         squatTriggerHeightY = new Vector2((originMeshHeightY.x - squatMeshHeightY.x + 2) * originTriggerHeightY.x, originTriggerHeightY.y - 1.5f);
+        squatGroundPosition = originalGroundPosition + Vector3.up *.3f;
         if(isPlayer)
             squatTriggerHeightY = new Vector2(originTriggerHeightY.x, originTriggerHeightY.y-.75f);
         //gets a reference to the menu
         gameUI = GameObject.FindGameObjectWithTag("EventSystem").GetComponent<InGameUI>();
+
+        originalPosition = transform.localPosition;
 
         myLastVelocity = Vector3.zero;
         startingPosition = Vector3.zero;
@@ -330,10 +343,7 @@ public class SpecialAction : MonoBehaviour {
             //moves the player to their starting positions;
             if (resetPosition)
             {
-                resetPosition = false;
-                rb.MovePosition(court.GetPosition(currentPosition, currentSide, this));
-                decided = false;
-                hitTime = hitCooldown + 1;
+                ResetPosition();
             }
 
             //if you are the server and its time to serve allow the ability to request the ball
@@ -357,6 +367,14 @@ public class SpecialAction : MonoBehaviour {
 
         //if your squatted then unsquat yourself
         Squat();
+    }
+
+    void ResetPosition()
+    {
+        resetPosition = false;
+        rb.MovePosition(court.GetPosition(currentPosition, currentSide, this));
+        decided = false;
+        hitTime = hitCooldown + 1;
     }
 
     #region computerStuff
@@ -623,6 +641,22 @@ public class SpecialAction : MonoBehaviour {
     void Block()
     {
         arms.gameObject.SetActive(block);
+        if (block)
+        {
+            SetCameraMovement(false);
+            SetArmMovement(true);
+            blockOver = true;
+            rb.velocity = rb.velocity.y * Vector3.up;
+        }
+        else
+        {
+            if(blockOver)
+            {
+                SetArmMovement(false);
+                SetCameraMovement(true);
+                blockOver = false;
+            }
+        }
     }
 
     //changes the height of the player when you want to squat and returns
@@ -632,32 +666,79 @@ public class SpecialAction : MonoBehaviour {
         //print(Input.GetAxis("Squat"));
         float hittingOffset;
         hittingOffset = hitting ? myParent.transform.position.y : 0;
-        if (squat)
+        if(dive || (squat && !controller.isWalking))
         {
-            if(Mathf.Abs(myCollider.height - squatColliderHeightY.x) > squatThreshhold)
-            {
-                myCollider.height = Mathf.Lerp(myCollider.height, squatColliderHeightY.x, squatSpeed);
-                myCollider.center = Vector3.Lerp(myCollider.center, new Vector3(myCollider.center.x, squatColliderHeightY.y, myCollider.center.z), squatSpeed);
-                transform.localScale = Vector3.Lerp(transform.localScale, new Vector3(transform.localScale.x, squatMeshHeightY.x, transform.localScale.z), squatSpeed);
-                transform.localPosition = Vector3.Lerp(transform.localPosition, new Vector3(transform.localPosition.x, squatMeshHeightY.y + hittingOffset, transform.localPosition.z), squatSpeed);
-                myTrigger.height = Mathf.Lerp(myTrigger.height, squatTriggerHeightY.x, squatSpeed);
-                myTrigger.center = Vector3.Lerp(myTrigger.center, new Vector3(myTrigger.center.x, squatTriggerHeightY.y, myTrigger.center.z), squatSpeed);
-            }
-            
+            Dive();
         }
         else
         {
-            if (Mathf.Abs(myCollider.height - originColliderHeightY.x) > squatThreshhold)
+            if (squat)
             {
-                myCollider.height = Mathf.Lerp(myCollider.height, originColliderHeightY.x, squatSpeed);
-                myCollider.center = Vector3.Lerp(myCollider.center, new Vector3(myCollider.center.x, originColliderHeightY.y, myCollider.center.z), squatSpeed);
-                transform.localScale = Vector3.Lerp(transform.localScale, new Vector3(transform.localScale.x, originMeshHeightY.x, transform.localScale.z), squatSpeed);
-                transform.localPosition = Vector3.Lerp(transform.localPosition, new Vector3(transform.localPosition.x, originMeshHeightY.y + hittingOffset, transform.localPosition.z), squatSpeed);
-                myTrigger.height = Mathf.Lerp(myTrigger.height, originTriggerHeightY.x, squatSpeed);
-                myTrigger.center = Vector3.Lerp(myTrigger.center, new Vector3(myTrigger.center.x, originTriggerHeightY.y, myTrigger.center.z), squatSpeed);
+                if (Mathf.Abs(myCollider.height - squatColliderHeightY.x) > squatThreshhold)
+                {
+                    myCollider.height = Mathf.Lerp(myCollider.height, squatColliderHeightY.x, squatSpeed);
+                    myCollider.center = Vector3.Lerp(myCollider.center, new Vector3(myCollider.center.x, squatColliderHeightY.y, myCollider.center.z), squatSpeed);
+                    transform.localScale = Vector3.Lerp(transform.localScale, new Vector3(transform.localScale.x, squatMeshHeightY.x, transform.localScale.z), squatSpeed);
+                    transform.localPosition = Vector3.Lerp(transform.localPosition, new Vector3(transform.localPosition.x, squatMeshHeightY.y + hittingOffset, transform.localPosition.z), squatSpeed);
+                    myTrigger.height = Mathf.Lerp(myTrigger.height, squatTriggerHeightY.x, squatSpeed);
+                    myTrigger.center = Vector3.Lerp(myTrigger.center, new Vector3(myTrigger.center.x, squatTriggerHeightY.y, myTrigger.center.z), squatSpeed);
+                    controller.ground.localPosition = Vector3.Lerp(controller.ground.localPosition, squatGroundPosition, squatSpeed);
+
+                }
+
             }
-                
+            else
+            {
+                if (Mathf.Abs(myCollider.height - originColliderHeightY.x) > squatThreshhold)
+                {
+                    myCollider.height = Mathf.Lerp(myCollider.height, originColliderHeightY.x, squatSpeed);
+                    myCollider.center = Vector3.Lerp(myCollider.center, new Vector3(myCollider.center.x, originColliderHeightY.y, myCollider.center.z), squatSpeed);
+                    transform.localScale = Vector3.Lerp(transform.localScale, new Vector3(transform.localScale.x, originMeshHeightY.x, transform.localScale.z), squatSpeed);
+                    transform.localPosition = Vector3.Lerp(transform.localPosition, new Vector3(transform.localPosition.x, originMeshHeightY.y + hittingOffset, transform.localPosition.z), squatSpeed);
+                    myTrigger.height = Mathf.Lerp(myTrigger.height, originTriggerHeightY.x, squatSpeed);
+                    myTrigger.center = Vector3.Lerp(myTrigger.center, new Vector3(myTrigger.center.x, originTriggerHeightY.y, myTrigger.center.z), squatSpeed);
+                    controller.ground.localPosition = Vector3.Lerp(controller.ground.localPosition, originalGroundPosition, squatSpeed);
+                }
+
+            }
         }
+        
+    }
+
+    void Dive()
+    {
+        float hittingOffset;
+        hittingOffset = hitting ? myParent.transform.position.y : 0;
+        if (squat)
+        {
+            
+            float relativeAngle = (Mathf.Atan2(rb.velocity.x, rb.velocity.z) * Mathf.Rad2Deg - myParent.parent.eulerAngles.y);
+            relativeAngle -= ((int)(relativeAngle / 360)) * 360;
+            relativeAngle *= -1;
+            Vector3 tempAxis = Vector3.up *  relativeAngle + Vector3.right * (Mathf.Atan2(rb.velocity.x, rb.velocity.z)) * Mathf.Rad2Deg + Vector3.forward * myParent.parent.eulerAngles.y;
+            print(tempAxis);
+            Vector3 rotationAxis = Vector3.right * Mathf.Cos(relativeAngle * Mathf.Deg2Rad) + Vector3.forward * Mathf.Sin(relativeAngle * Mathf.Deg2Rad);
+            myParent.localEulerAngles = (rotationAxis).normalized * 60;
+            dive = true;
+        }
+        else
+        {
+            myParent.localEulerAngles = Vector3.zero;
+            
+            if(myParent.localEulerAngles.x + myParent.localEulerAngles.z < 1f)
+            {
+                dive = false;
+            }
+        }
+        /*if (Mathf.Abs(myCollider.height - originColliderHeightY.x) > squatThreshhold)
+        {
+            myCollider.height = Mathf.Lerp(myCollider.height, originColliderHeightY.x, squatSpeed);
+            myCollider.center = Vector3.Lerp(myCollider.center, new Vector3(myCollider.center.x, originColliderHeightY.y, myCollider.center.z), squatSpeed);
+            transform.localScale = Vector3.Lerp(transform.localScale, new Vector3(transform.localScale.x, originMeshHeightY.x, transform.localScale.z), squatSpeed);
+            transform.localPosition = Vector3.Lerp(transform.localPosition, new Vector3(transform.localPosition.x, originMeshHeightY.y + hittingOffset, transform.localPosition.z), squatSpeed);
+            myTrigger.height = Mathf.Lerp(myTrigger.height, originTriggerHeightY.x, squatSpeed);
+            myTrigger.center = Vector3.Lerp(myTrigger.center, new Vector3(myTrigger.center.x, originTriggerHeightY.y, myTrigger.center.z), squatSpeed);
+        }*/
     }
 
     //gets all the player input
@@ -867,6 +948,18 @@ public class SpecialAction : MonoBehaviour {
         tpc.allowZoom = move;
     }
 
+    public void SetArmMovement(bool move)
+    {
+        m_MouseLook.SetCursorLock(move);
+        rightArm.look = move;
+        leftArm.look = move;
+        if(!move)
+        {
+            rightArm.Reset();
+            leftArm.Reset();
+        }
+    }
+
     //add force and spin to the ball
     void ShootBall()
     {
@@ -989,7 +1082,7 @@ public class SpecialAction : MonoBehaviour {
 
         //makes sure that the player body is in the center of where the camera rotates
         transform.eulerAngles = myParent.eulerAngles;
-        transform.position = myParent.position + Vector3.up * .85f;
+        transform.position = myParent.position + originalPosition;
         transform.parent = myParent;
     }
 
