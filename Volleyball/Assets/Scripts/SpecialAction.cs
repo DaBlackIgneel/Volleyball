@@ -149,15 +149,19 @@ public class SpecialAction : MonoBehaviour {
     bool runServe;
     [SerializeField]
     float servePower = .75f;
+    delegate void ServeOfChoice();
+    List<ServeOfChoice> myServes;
+    int serveChoice;
 
     CapsuleCollider[] myColliders;
     Vector3 startingPosition;
 
+
     // Use this for initialization
     void Start () {
-
-        
-
+        myServes = new List<ServeOfChoice>();
+        myServes.Add(NormalServe);
+        //myServes.Add(RunningServe);
         //gets the object over this object in the object heirarchy
         myParent = transform.parent;
         if (isPlayer)
@@ -417,12 +421,14 @@ public class SpecialAction : MonoBehaviour {
             decided = true;
             waitCount = 0;
             runServe = false;
+            serveChoice = Mathf.RoundToInt(Random.Range(0f, myServes.Count-1));
+            
         }
         if(decided)
         {
             //toss the ball in the air
             if(waitCount > waitServeCooldown)
-                RunningServe();
+                myServes[serveChoice]();
             else
             {
                 waitCount += Time.fixedDeltaTime;
@@ -542,9 +548,9 @@ public class SpecialAction : MonoBehaviour {
         {
             if(hittable)
             {
-                originAimDir = (Mathf.Cos(aimAngle) * transform.forward - Mathf.Sin(aimAngle) * transform.right) * Mathf.Sqrt(5) + transform.up*.82f;
+                originAimDir = (Mathf.Cos(aimAngle) * transform.forward - Mathf.Sin(aimAngle) * transform.right) * Mathf.Sqrt(5) + transform.up * .6f;
                 originAimDir = originAimDir.normalized;
-                power = MaxPower;
+                power = MaxPower*.5f;
                 ballSpin = Vector2.up;
                 decided = false;
                 serveStage = 4;
@@ -648,7 +654,7 @@ public class SpecialAction : MonoBehaviour {
             SetCameraMovement(false);
             SetArmMovement(true);
             blockOver = true;
-            rb.velocity = rb.velocity.y * Vector3.up;
+            //rb.velocity = rb.velocity.y * Vector3.up;
         }
         else
         {
@@ -996,7 +1002,6 @@ public class SpecialAction : MonoBehaviour {
                     HitSetUp();
                     rb.velocity = Vector3.zero;
                 }
-                myLastVelocity = rb.velocity;
 
                 //makes it so that the player body doesn't rotate while your aiming
                 /*if (isPlayer)

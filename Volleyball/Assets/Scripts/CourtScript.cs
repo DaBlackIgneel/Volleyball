@@ -15,6 +15,8 @@ public class CourtScript : MonoBehaviour {
     public Rules CourtRules { get { return courtRules; } }
     public bool onlyServes;
     public bool onlyReceives;
+    public bool offline;
+
 
     float currentTime;
     float normalServeWaitTime = 5;
@@ -31,18 +33,44 @@ public class CourtScript : MonoBehaviour {
     SpecialAction[] players;
     VolleyballScript ball;
     SpecialAction server;
+    
+    UnityEngine.UI.Text[] scoreDisplay;
+    Vector2 scoreIndex;
     UnityEngine.UI.Text displayText;
     [System.NonSerialized]
     public GameObject net;
     // Use this for initialization
     void Start ()
     {
+
+
         //find all players in the game
         people = GameObject.FindGameObjectsWithTag("Player");
 
         net = GameObject.FindGameObjectWithTag("Net");
 
         displayText = GameObject.FindGameObjectWithTag("DisplayText").GetComponent<UnityEngine.UI.Text>();
+
+        GameObject[] scoreObj = GameObject.FindGameObjectsWithTag("Score");
+        scoreDisplay = new UnityEngine.UI.Text[scoreObj.Length];
+        for(int i = 0; i < scoreObj.Length; i++)
+        {
+            scoreDisplay[i] = scoreObj[i].GetComponent<UnityEngine.UI.Text>();
+        }
+
+        if(scoreDisplay.Length > 1)
+        {
+            if(scoreDisplay[0].name.IndexOf("Left") > 0)
+            {
+                scoreIndex.x = 0;
+                scoreIndex.y = 1;
+            }
+            else
+            {
+                scoreIndex.x = 1;
+                scoreIndex.y = 0;
+            }
+        }
 
         //Gets the rules of the game
         courtRules = GetComponent<Rules>();
@@ -66,6 +94,7 @@ public class CourtScript : MonoBehaviour {
 	// Update is called once per frame
 	void Update ()
     {
+        UpdateScore();
         //when the rally is over wait a few seconds to start the serve
 		if(rallyOver)
         {
@@ -99,6 +128,12 @@ public class CourtScript : MonoBehaviour {
             displayText.color = temp;
             displayTimer -= displayTimerStep;
         }
+    }
+
+    void UpdateScore()
+    {
+        scoreDisplay[(int)scoreIndex.x].text = ((int)score.x).ToString();
+        scoreDisplay[(int)scoreIndex.y].text = ((int)score.y).ToString();
     }
 
     //get the starting position of each player
@@ -193,11 +228,7 @@ public class CourtScript : MonoBehaviour {
         readyToServe = true;
     }
 
-    //given a side return the opposite side
-    public Side OppositeSide(Side currentSide)
-    {
-        return (Side)((int)currentSide * -1);
-    }
+    
 
     //transport the ball to the server
     public void GiveBallToServer()
@@ -237,5 +268,24 @@ public class CourtScript : MonoBehaviour {
             courtRules.EnableGroundOut(true);
             serveSide = Side.Right;
         }
+    }
+
+    //given a side return the opposite side
+    public static Side OppositeSide(Side currentSide)
+    {
+        return (Side)((int)currentSide * -1);
+    }
+
+    public static Transform GetHighestParent(Transform current)
+    {
+        if (current.parent == null)
+            return current;
+        else
+            return GetHighestParent(current.parent);
+    }
+
+    public static SpecialAction FindPlayerFromCollision(Transform current)
+    {
+        return GetHighestParent(current).Find("PlayerPivot/PlayerBody").GetComponent<SpecialAction>();
     }
 }

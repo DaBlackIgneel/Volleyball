@@ -36,7 +36,7 @@ public class Rules : MonoBehaviour {
         if(doubleTouch)
         {
             message = "A player touched the ball twice";
-            court.UpdateScore(court.OppositeSide(playerSide), message);
+            court.UpdateScore(CourtScript.OppositeSide(playerSide), message);
         }
     }
 
@@ -49,7 +49,7 @@ public class Rules : MonoBehaviour {
             if (outOfBounds)
             {
                 message = "OUT";
-                court.UpdateScore(court.OppositeSide(lastToTouchBall),message);
+                court.UpdateScore(CourtScript.OppositeSide(lastToTouchBall),message);
             }
             else
             {
@@ -64,7 +64,7 @@ public class Rules : MonoBehaviour {
                     sideHitIn = Side.Left;
                 }
                 message = "IN";
-                court.UpdateScore(court.OppositeSide(sideHitIn), message);
+                court.UpdateScore(CourtScript.OppositeSide(sideHitIn), message);
             }
         }
     }
@@ -76,7 +76,7 @@ public class Rules : MonoBehaviour {
         if (netServe)
         {
             message = "The serve hit the net";
-            court.UpdateScore(court.OppositeSide(playerSide), message);
+            court.UpdateScore(CourtScript.OppositeSide(playerSide), message);
         }
     }
 
@@ -87,7 +87,7 @@ public class Rules : MonoBehaviour {
         if (touchNet)
         {
             message = "A player touched the net";
-            court.UpdateScore(court.OppositeSide(playerSide), message);
+            court.UpdateScore(CourtScript.OppositeSide(playerSide), message);
         }
     }
 
@@ -98,7 +98,7 @@ public class Rules : MonoBehaviour {
         if (maxHitPerSide)
         {
             message = "One side hit the ball more than " + maxNumberOfHits + " times";
-            court.UpdateScore(court.OppositeSide(playerSide), message);
+            court.UpdateScore(CourtScript.OppositeSide(playerSide), message);
         }
     }
 
@@ -109,7 +109,7 @@ public class Rules : MonoBehaviour {
         relativePosToCourt.z -= radius/2 * (float)playerSide;
         if (relativePosToCourt.z < 9 * (float)(playerSide))
         {
-            court.UpdateScore(court.OppositeSide(playerSide), message);
+            court.UpdateScore(CourtScript.OppositeSide(playerSide), message);
         }
     }
     #endregion

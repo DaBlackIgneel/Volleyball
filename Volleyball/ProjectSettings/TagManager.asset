@@ -11,6 +11,7 @@ TagManager:
   - CourtController
   - Net
   - DisplayText
+  - Score
   layers:
   - Default
   - TransparentFX

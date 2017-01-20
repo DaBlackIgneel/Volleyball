@@ -306,9 +306,9 @@ public class VolleyballScript : MonoBehaviour {
         
 
         //if currently colliding with the player then go through all the player collision checks
-        if (other.transform.tag == "Player")
+        if (other.gameObject.layer == LayerMask.NameToLayer("Player"))
         {
-            SpecialAction currentPlayer = other.transform.GetComponentInChildren<SpecialAction>();
+            SpecialAction currentPlayer = CourtScript.FindPlayerFromCollision(other.transform);
             if(currentPlayer != null)
                 CollideWithPlayer(currentPlayer);
             return;
@@ -331,6 +331,8 @@ public class VolleyballScript : MonoBehaviour {
             currentAdditions = maxAdditions;
         }
     }
+
+    
 
     //reset the spin of the ball
     void ZeroMotion()
