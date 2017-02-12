@@ -8,6 +8,15 @@ public class InGameUI : MonoBehaviour {
     GameObject menuStart;
     SpecialAction specialMe;
     public bool toggleMenu;
+    float previousTimeScale;
+    public bool ToggleMenu
+    {
+        set
+        {
+            toggleMenu = value;
+        }
+    }
+
 	// Use this for initialization
 	void Start () {
         myMenu = transform.parent.Find("Menu").gameObject;
@@ -18,15 +27,18 @@ public class InGameUI : MonoBehaviour {
 	void Update () {
 		if(toggleMenu)
         {
-            if(myMenu.activeInHierarchy)
+            if (myMenu.activeInHierarchy)
             {
                 CloseEverything();
                 specialMe.Pause(false);
+                Time.timeScale = previousTimeScale;
             }
             else
             {
                 myMenu.SetActive(true);
                 specialMe.Pause(true);
+                previousTimeScale = Time.timeScale;
+                Time.timeScale = 0;
             }
             toggleMenu = false;
         }

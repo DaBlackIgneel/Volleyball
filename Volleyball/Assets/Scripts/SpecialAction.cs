@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.Threading;
 using UnityEngine;
 using UnityStandardAssets.Characters;
 
@@ -53,7 +54,6 @@ public class SpecialAction : MonoBehaviour {
             }
         } }
 
-
     PlayerMovement controller;
     MyMouseLook m_MouseLook;
     Transform myParent;
@@ -78,7 +78,8 @@ public class SpecialAction : MonoBehaviour {
     float power = 1;
     
     float regFixedTimeDelta;
-    InGameUI gameUI;
+    [System.NonSerialized]
+    public InGameUI gameUI;
 
     bool Shoot
     {
@@ -161,7 +162,7 @@ public class SpecialAction : MonoBehaviour {
     void Start () {
         myServes = new List<ServeOfChoice>();
         myServes.Add(NormalServe);
-        //myServes.Add(RunningServe);
+        myServes.Add(RunningServe);
         //gets the object over this object in the object heirarchy
         myParent = transform.parent;
         if (isPlayer)
@@ -255,6 +256,9 @@ public class SpecialAction : MonoBehaviour {
         //if (!hitting)
         AimingDetail = aimingDetail;
 
+        if(isPlayer)
+            gameUI.SetToggleMenu(Input.GetButtonDown("Menu"), this);
+        
         //sets the cooldowns for hitting the ball
         //if you are serving, you have a smaller cooldown
         if (court.serve)
@@ -755,7 +759,7 @@ public class SpecialAction : MonoBehaviour {
         {
             block = (Input.GetAxisRaw("Block") != 0);
             squat = (Input.GetAxis("Squat") > 0.75f);
-            gameUI.SetToggleMenu(Input.GetButtonDown("Menu"), this);
+            //gameUI.SetToggleMenu(Input.GetButtonDown("Menu"), this);
         }
             
     }
@@ -957,7 +961,7 @@ public class SpecialAction : MonoBehaviour {
 
     public void SetArmMovement(bool move)
     {
-        m_MouseLook.SetCursorLock(move);
+        m_MouseLook.SetCursorLock(true);
         rightArm.look = move;
         leftArm.look = move;
         if(!move)
@@ -1241,3 +1245,4 @@ public class SpecialAction : MonoBehaviour {
     }
     
 }
+
