@@ -17,6 +17,11 @@ public class CourtScript : MonoBehaviour {
     public bool onlyReceives;
     public bool offline;
 
+    public Dictionary<Side,List<SpecialAction>> Players
+    {
+        get { return players; }
+    }
+
 
     float currentTime;
     float normalServeWaitTime = 5;
@@ -30,7 +35,7 @@ public class CourtScript : MonoBehaviour {
 
     Rules courtRules;
     GameObject[] people;
-    SpecialAction[] players;
+    Dictionary<Side,List<SpecialAction>> players;
     VolleyballScript ball;
     SpecialAction server;
     
@@ -84,10 +89,15 @@ public class CourtScript : MonoBehaviour {
         ball = GameObject.FindGameObjectWithTag("Ball").GetComponent<VolleyballScript>();
 
         //get access to the special actions of the players
-        players = new SpecialAction[people.Length];
-        for(int i = 0; i < players.Length; i++)
+        players = new Dictionary<Side,List<SpecialAction>>();
+        for (int i = 0; i < people.Length; i++)
         {
-            players[i] = people[i].GetComponentInChildren<SpecialAction>();
+            SpecialAction tempPerson = people[i].GetComponentInChildren<SpecialAction>();
+            if(!players.ContainsKey(tempPerson.currentSide))
+            {
+                players.Add(tempPerson.currentSide, new List<SpecialAction>());
+            }
+            players[tempPerson.currentSide].Add(tempPerson);
         }
 	}
 	
@@ -203,9 +213,13 @@ public class CourtScript : MonoBehaviour {
         rallyOver = true;
 
         //goes through each player and stops their movement and their special actions
-        for (int i = 0; i < players.Length; i++)
+        for (int s = -1; s < 2; s += 2)
         {
-            players[i].EndRally();
+            Side tempSide = (Side)s;
+            for (int i = 0; i < players[tempSide].Count; i++)
+            {
+                players[tempSide][i].EndRally();
+            }
         }
     }
 
@@ -214,10 +228,15 @@ public class CourtScript : MonoBehaviour {
     void BeginServe()
     {
         //go through each player and allow special actions and move them to their starting positions
-        for (int i = 0; i < players.Length; i++)
+        for (int s = -1; s < 2; s += 2)
         {
-            players[i].enabled = true;
-            players[i].resetPosition = true;
+            Side tempSide = (Side)s;
+            for (int i = 0; i < players[tempSide].Count; i++)
+            {
+                players[tempSide][i].enabled = true;
+                //players[i].resetPosition = true;
+                players[tempSide][i].ResetPosition();
+            }
         }
 
         //move the ball off to the side
@@ -287,5 +306,11 @@ public class CourtScript : MonoBehaviour {
     public static SpecialAction FindPlayerFromCollision(Transform current)
     {
         return GetHighestParent(current).Find("PlayerPivot/PlayerBody").GetComponent<SpecialAction>();
+    }
+
+    public static Side FloatToSide(float ff)
+    {
+        int iSide = (int)Mathf.Sign(ff);
+        return (Side)iSide;
     }
 }

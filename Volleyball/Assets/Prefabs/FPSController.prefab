@@ -75,6 +75,7 @@ GameObject:
   - component: {fileID: 136437857052966698}
   - component: {fileID: 114225345423343298}
   - component: {fileID: 54199077330131924}
+  - component: {fileID: 136509959732860770}
   m_Layer: 11
   m_Name: PlayerBody
   m_TagString: Untagged
@@ -933,6 +934,7 @@ MonoBehaviour:
   isGrounded: 0
   isWalking: 0
   ground: {fileID: 4383896815954378}
+  relativeMovement: 1
 --- !u!114 &114225345423343298
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -944,6 +946,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 812587ed716d7144b80cf1ba43fdbc2b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  BallLandingIndicator: {fileID: 1643604688047644, guid: fd24239944a84a94b8d2ebb881ce4a7f,
+    type: 2}
   tester1: 0.5
   tester2: 0.82
   tester3: 1
@@ -1095,6 +1099,19 @@ CapsuleCollider:
   m_Height: 2.46
   m_Direction: 1
   m_Center: {x: 0, y: 0.9, z: 0.55}
+--- !u!136 &136509959732860770
+CapsuleCollider:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1315777919500408}
+  m_Material: {fileID: 0}
+  m_IsTrigger: 0
+  m_Enabled: 1
+  m_Radius: 0.5
+  m_Height: 1.39
+  m_Direction: 1
+  m_Center: {x: 0, y: 0.36, z: 0}
 --- !u!136 &136763919418440220
 CapsuleCollider:
   m_ObjectHideFlags: 1

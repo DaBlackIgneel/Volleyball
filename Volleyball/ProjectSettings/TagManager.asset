@@ -12,6 +12,7 @@ TagManager:
   - Net
   - DisplayText
   - Score
+  - Indicator
   layers:
   - Default
   - TransparentFX

@@ -227,6 +227,11 @@ public class VolleyballScript : MonoBehaviour {
         samePlayerCount = 0;
     }
 
+    void UndoLastCollision()
+    {
+
+    }
+
     //stops all motion
     public void ResetMotion()
     {
@@ -321,7 +326,7 @@ public class VolleyballScript : MonoBehaviour {
                 court.CourtRules.ReportNetServe(previousPlayer.currentSide);
             }
         }
-        //will eventually be used for ending a rally
+        //if ball hits anything else then its out of bounds
         else if (!court.rallyOver)
         {
             if (previousPlayer != null)
