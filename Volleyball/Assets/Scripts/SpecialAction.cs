@@ -22,6 +22,9 @@ public struct PredictionPack
 public class SpecialAction : MonoBehaviour {
     public GameObject BallLandingIndicator;
 
+    public Vector3 aimSpot;
+    Vector3 spot;
+
     public float tester1;
     public float tester2;
     public float tester3;
@@ -107,6 +110,8 @@ public class SpecialAction : MonoBehaviour {
     [System.NonSerialized]
     public VolleyballScript vBall;
 
+    GameObject aimSpotIndicator;
+
     CourtScript court;
     Transform arms;
     MyMouseLook rightArm;
@@ -175,6 +180,7 @@ public class SpecialAction : MonoBehaviour {
 
     float HEIGHT = 2f;
     float SQUAT_HEIGHT = 1f;
+    float WALK_LENGTH = 3;
 
     // Use this for initialization
     void Start () {
@@ -276,7 +282,17 @@ public class SpecialAction : MonoBehaviour {
             gameUI.SetToggleMenu(Input.GetButtonDown("Menu"), this);
             
         }
-        
+        if(!isPlayer && BallLandingIndicator != null)
+        {
+            spot = aimSpot;
+            spot.z *= (int)CourtScript.OppositeSide(currentSide);
+            if (aimSpotIndicator == null)
+                aimSpotIndicator = Instantiate(BallLandingIndicator, spot, Quaternion.identity);
+            else
+                aimSpotIndicator.transform.position = spot;
+            aimSpotIndicator.GetComponent<MeshRenderer>().material.color = Color.green;
+        }
+
         //sets the cooldowns for hitting the ball
         //if you are serving, you have a smaller cooldown
         if (court.serve)
@@ -422,9 +438,9 @@ public class SpecialAction : MonoBehaviour {
         //float moveTime = PredictMovementTime(pp.position);
         Vector3 landing = MovePositionAtMaxHeight(HEIGHT);
         Vector3 distance = landing - controller.transform.position;
-        distance.y = 0;
-        bool shouldSquat = landing.y <= SQUAT_HEIGHT + .5f && vBall.transform.position.y < (1f - vBall.rb.velocity.y/2f) && distance.magnitude < 4f;
-        bool shouldWalk = (landing - landing.y * Vector3.up).magnitude < 2 && vBall.transform.position.y > 4;
+        distance = Vector3.ProjectOnPlane(distance,Vector3.up);
+        bool shouldSquat = landing.y <= SQUAT_HEIGHT + .5f && vBall.transform.position.y < (1f - vBall.rb.velocity.y/2f) && distance.magnitude < WALK_LENGTH*3/2f;
+        bool shouldWalk = (landing - landing.y * Vector3.up).magnitude < WALK_LENGTH;// && vBall.transform.position.y > 4;
         controller.MoveTowards(landing, shouldWalk);
         squat = shouldSquat;
         if (!isPlayer)
@@ -521,14 +537,7 @@ public class SpecialAction : MonoBehaviour {
         }
         else if(((!court.readyToServe && court.serveSide != currentSide)|| !court.serve)&& !hitting)
         {
-            Vector3 enemyPosition = court.Players[CourtScript.OppositeSide(currentSide)][0].transform.position;
-            hitting = true;
-            Vector3 distance = enemyPosition - transform.position;
-            distance.y = 0;
-            originAimDir = distance.normalized + Vector3.up * 1f;
-            power = MaxPower*.5f;
-            ballSpin = Vector3.up;
-            smash = false;
+            ComputerAim();
             ComputerHit();
         }
     }
@@ -719,6 +728,28 @@ public class SpecialAction : MonoBehaviour {
 
     void ComputerAim()
     {
+        /*Vector3 enemyPosition = court.Players[CourtScript.OppositeSide(currentSide)][0].transform.position;
+        hitting = true;
+        Vector3 distance = enemyPosition - transform.position;
+        distance.y = 0;
+        originAimDir = distance.normalized + Vector3.up * 1f;
+        power = MaxPower * .5f;
+        ballSpin = Vector3.up;
+        smash = false;*/
+
+
+        
+
+        float time = 2;
+        Vector3 distance = spot - vBall.transform.position;
+        float horizontalSpeed = Vector3.ProjectOnPlane(distance, Vector3.up).magnitude / time * vBall.rb.mass;
+        float verticalSpeed = (-.5f * Physics.gravity.y * time * time + distance.y)/time;
+        Vector3 velocity = (Vector3.ProjectOnPlane(distance, Vector3.up).normalized * horizontalSpeed + Vector3.up * verticalSpeed);
+        power = velocity.magnitude;
+        originAimDir = velocity.normalized;
+        smash = false;
+        ballSpin = Vector3.up;
+        hitting = true;
 
     }
 
@@ -858,7 +889,7 @@ public class SpecialAction : MonoBehaviour {
     {
         float hittingOffset;
         hittingOffset = hitting ? myParent.transform.position.y : 0;
-        if (squat)
+        if (squat && !controller.isWalking)
         {
             
             float relativeAngle = (Mathf.Atan2(rb.velocity.x, rb.velocity.z) * Mathf.Rad2Deg - myParent.parent.eulerAngles.y);
