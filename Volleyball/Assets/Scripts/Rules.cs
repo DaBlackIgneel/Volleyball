@@ -6,6 +6,28 @@ public class Rules : MonoBehaviour {
 
     public static float maxNumberOfHits = 3;
     
+    public bool DoubleTouch
+    {
+        get { return doubleTouch; }
+    }
+    public bool GroundedOut
+    {
+        get { return groundedOut; }
+    }
+    public bool NetServe
+    {
+        get { return netServe; }
+    }
+    public bool TouchNet
+    {
+        get { return touchNet; }
+    }
+    public bool MaxHitPerSide
+    {
+        get { return maxHitPerSide; }
+    }
+
+
     bool doubleTouch;
     bool groundedOut;
     bool netServe;

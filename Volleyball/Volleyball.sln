@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Volleyball", "Volleyball.cs
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Volleyball.Editor.Plugins", "Volleyball.Editor.Plugins.csproj", "{A76C9262-A935-E5EB-5341-631F6E755CB4}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Volleyball.Editor", "Volleyball.Editor.csproj", "{796EFCAE-0364-D2C4-0FD0-E8450421DD10}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -25,6 +27,10 @@ Global
 		{A76C9262-A935-E5EB-5341-631F6E755CB4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A76C9262-A935-E5EB-5341-631F6E755CB4}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A76C9262-A935-E5EB-5341-631F6E755CB4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{796EFCAE-0364-D2C4-0FD0-E8450421DD10}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{796EFCAE-0364-D2C4-0FD0-E8450421DD10}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{796EFCAE-0364-D2C4-0FD0-E8450421DD10}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{796EFCAE-0364-D2C4-0FD0-E8450421DD10}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -6,9 +6,13 @@ public enum Direction { X, Y, Z }
 
 public class VolleyballScript : MonoBehaviour {
     public bool grounded;
+    [SerializeField]
     public float SpinAddConst { get { return spinAddConst; } }
     public float MaxAdditions { get { return maxAdditions; } }
-
+    public SpecialAction PreviousPlayer
+    {
+        get { return previousPlayer; }
+    }
 
     [System.NonSerialized]
     public Rigidbody rb;
@@ -176,6 +180,18 @@ public class VolleyballScript : MonoBehaviour {
         
     }
 
+    public int GetSideTouches(Side side)
+    {
+        if(previousPlayer.currentSide == side)
+        {
+            return touches;
+        }
+        else
+        {
+            return 0;
+        }
+    }
+
     //keeps track of collisions with players
     public void CollideWithPlayer(SpecialAction currentPlayer)
     {
@@ -209,7 +225,10 @@ public class VolleyballScript : MonoBehaviour {
             //if the player was on a different side then reset the amount of times that
             //the side has touched the ball
             else
+            {
                 touches = 1;
+                court.SetMode(currentPlayer.currentSide);
+            }
             if(touches > Rules.maxNumberOfHits)
             {
                 court.CourtRules.ReportMaxNumberHit(currentPlayer.currentSide);
@@ -313,9 +332,9 @@ public class VolleyballScript : MonoBehaviour {
         //if currently colliding with the player then go through all the player collision checks
         if (other.gameObject.layer == LayerMask.NameToLayer("Player"))
         {
-            SpecialAction currentPlayer = CourtScript.FindPlayerFromCollision(other.transform);
-            if(currentPlayer != null)
-                CollideWithPlayer(currentPlayer);
+            //SpecialAction currentPlayer = CourtScript.FindPlayerFromCollision(other.transform);
+            //if(currentPlayer != null)
+               // CollideWithPlayer(currentPlayer);
             return;
         }
         //if the ball that was served hit the net the report a net serve

@@ -2,6 +2,73 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+public struct CourtDimensions
+{
+    public float length;
+    public float width;
+
+    public CourtDimensions(float l, float w)
+    {
+        length = l;
+        width = w;
+    }
+
+    public struct Rectangle
+    {
+        public Vector3 upperRightCorner;
+        public Vector3 lowerLeftCorner;
+
+        public Rectangle(Vector3 c1, Vector3 c2)
+        {
+            upperRightCorner = c1;
+            lowerLeftCorner = c2;
+        }
+
+        public Vector3 Dimension()
+        {
+            return upperRightCorner - lowerLeftCorner;
+        }
+
+        public Vector3 Center()
+        {
+            return upperRightCorner - Dimension() * .5f;
+        }
+    }
+
+    public enum Section {FrontLeft = 0, FrontMiddle = 1, FrontRight = 2, BackRight = 3, BackMiddle = 4, BackLeft = 5 }
+
+    public Rectangle FrontLineRect(Side side)
+    {
+        return new Rectangle(new Vector3(width / 2 * (int)side, 0, length / 6.0f * (int)side), new Vector3(-width / 2 * (int)side, 0, 0));
+    }
+
+    public Rectangle BackLineRect(Side side)
+    {
+        return new Rectangle(new Vector3(width / 2 * (int)side, 0, length / 2.0f * (int)side), new Vector3(-width / 2 * (int)side, 0, length / 6.0f * (int)side));
+    }
+
+    public Vector3 FrontLine(Side side)
+    {
+        return new Vector3(width, 0, length / 6.0f * (int)side);
+    }
+
+    public Vector3 BackLine(Side side)
+    {
+        return new Vector3(width, 0, length / 2.0f * (int)side);
+    }
+
+    public Rectangle CourtSection(Side side, Section section)
+    {
+        int mySection = (int)section > 2 ? (5 - (int)section) : (int)section;
+        Vector2 myLength = (int)section > 2 ? new Vector2(length / 2 , length / 6) : new Vector2(length / 6, 0);
+        return new Rectangle(new Vector3((-width / 2 + width / 3 * (mySection + 1)) * (int)side, 0, myLength.x * (int)side),
+                            new Vector3((-width / 2 + width / 3 * (mySection)) * (int)side, 0, myLength.y * (int)side));
+
+    }
+}
+
+
+
 public class CourtScript : MonoBehaviour {
     
     public bool serve;
@@ -16,13 +83,28 @@ public class CourtScript : MonoBehaviour {
     public bool onlyServes;
     public bool onlyReceives;
     public bool offline;
+    public CourtDimensions dimensions;
+    public Dictionary<Side,Dictionary<StrategyType,Strategy>> currentStrategy;
 
     public Dictionary<Side,List<SpecialAction>> Players
     {
         get { return players; }
     }
+    public Dictionary<Side, StrategyType> Mode
+    {
+        get { return mode; }
+    }
+
+    public Strategy[] defaultDefenseStrategies;
+    public Strategy[] defaultOffenseStrategies;
+
+    public LocationRelation LocalRelate
+    {
+        get { return localRelate; }
+    }
 
 
+    LocationRelation localRelate;
     float currentTime;
     float normalServeWaitTime = 5;
     float quickServeWaitTime = 1;
@@ -36,6 +118,7 @@ public class CourtScript : MonoBehaviour {
     Rules courtRules;
     GameObject[] people;
     Dictionary<Side,List<SpecialAction>> players;
+    Dictionary<Side, StrategyType> mode;
     VolleyballScript ball;
     SpecialAction server;
     
@@ -45,12 +128,14 @@ public class CourtScript : MonoBehaviour {
     [System.NonSerialized]
     public GameObject net;
     // Use this for initialization
-    void Start ()
+    void Start()
     {
-
+        dimensions = new CourtDimensions(18, 9);
 
         //find all players in the game
         people = GameObject.FindGameObjectsWithTag("Player");
+
+        localRelate = GetComponent<LocationRelation>();
 
         net = GameObject.FindGameObjectWithTag("Net");
 
@@ -58,14 +143,14 @@ public class CourtScript : MonoBehaviour {
 
         GameObject[] scoreObj = GameObject.FindGameObjectsWithTag("Score");
         scoreDisplay = new UnityEngine.UI.Text[scoreObj.Length];
-        for(int i = 0; i < scoreObj.Length; i++)
+        for (int i = 0; i < scoreObj.Length; i++)
         {
             scoreDisplay[i] = scoreObj[i].GetComponent<UnityEngine.UI.Text>();
         }
 
-        if(scoreDisplay.Length > 1)
+        if (scoreDisplay.Length > 1)
         {
-            if(scoreDisplay[0].name.IndexOf("Left") > 0)
+            if (scoreDisplay[0].name.IndexOf("Left") > 0)
             {
                 scoreIndex.x = 0;
                 scoreIndex.y = 1;
@@ -89,17 +174,29 @@ public class CourtScript : MonoBehaviour {
         ball = GameObject.FindGameObjectWithTag("Ball").GetComponent<VolleyballScript>();
 
         //get access to the special actions of the players
-        players = new Dictionary<Side,List<SpecialAction>>();
+        players = new Dictionary<Side, List<SpecialAction>>();
         for (int i = 0; i < people.Length; i++)
         {
             SpecialAction tempPerson = people[i].GetComponentInChildren<SpecialAction>();
-            if(!players.ContainsKey(tempPerson.currentSide))
+            if (!players.ContainsKey(tempPerson.currentSide))
             {
                 players.Add(tempPerson.currentSide, new List<SpecialAction>());
             }
             players[tempPerson.currentSide].Add(tempPerson);
         }
-	}
+        currentStrategy = new Dictionary<Side, Dictionary<StrategyType, Strategy>>();
+        for (int i = -1; i < 2; i += 2)
+        {
+            Side tempSide = (Side)i;
+            currentStrategy.Add(tempSide, new Dictionary<StrategyType, Strategy>());
+            currentStrategy[tempSide].Add(StrategyType.Defense, defaultDefenseStrategies[players[tempSide].Count - 1]);
+            currentStrategy[tempSide].Add(StrategyType.Offense, defaultOffenseStrategies[players[tempSide].Count - 1]);
+        }
+
+        mode = new Dictionary<Side, StrategyType>();
+        mode.Add(Side.Left, StrategyType.Offense);
+        mode.Add(Side.Right, StrategyType.Defense);
+    }
 	
 	// Update is called once per frame
 	void Update ()
@@ -120,6 +217,7 @@ public class CourtScript : MonoBehaviour {
                 currentTime += Time.deltaTime;
             }
         }
+
 	}
 
     void FixedUpdate()
@@ -146,6 +244,34 @@ public class CourtScript : MonoBehaviour {
         scoreDisplay[(int)scoreIndex.y].text = ((int)score.y).ToString();
     }
 
+    void UpdateStrategyPositions()
+    {
+        for(int i = -1; i < 2; i += 2)
+        {
+            Side tempSide = (Side)i;
+            try
+            {
+                Strategy myStrategy = currentStrategy[tempSide][mode[tempSide]];
+                for (int p = 0; p < myStrategy.numOfPlayers; p++)
+                {
+                    GetCourtPosition(p + 1, tempSide).position = Vector3.Scale(myStrategy.DefaultPositions(p),new Vector3((int)(tempSide), 1, (int)(tempSide)));
+                }
+            }
+            catch(System.Exception e)
+            {
+                print("You need to make the offense strategy");
+                print(e.Message);
+            }
+        }
+        
+    }
+
+    public Transform GetCourtPosition(int positionNumber, Side courtSide)
+    {
+        string sideName = courtSide == Side.Right? RightSideName : LeftSideName;
+        return transform.Find(sideName).Find(sideName + " (" + positionNumber + ")");
+    }
+
     //get the starting position of each player
     public Vector3 GetPosition(int positionNumber, Side courtSide, SpecialAction currentPlayer)
     {
@@ -168,13 +294,10 @@ public class CourtScript : MonoBehaviour {
         //if the current player is not serving than transport them to their corresponding positions
         else
         {
-            position = transform.Find(sideName).Find(sideName + " (" + positionNumber + ")").position;
+            position = GetCourtPosition(positionNumber,courtSide).position;
             
         }
-        if (currentPlayer.isPlayer)
-        {
-            currentPlayer.SetMovementEnabled(true);
-        }
+        
         position += transform.position;
         position.y = 0;
 
@@ -289,6 +412,13 @@ public class CourtScript : MonoBehaviour {
         }
     }
 
+    public void SetMode(Side side)
+    {
+        mode[side] = StrategyType.Offense;
+        mode[OppositeSide(side)] = StrategyType.Defense;
+        UpdateStrategyPositions();
+    }
+    
     //given a side return the opposite side
     public static Side OppositeSide(Side currentSide)
     {
@@ -313,4 +443,6 @@ public class CourtScript : MonoBehaviour {
         int iSide = (int)Mathf.Sign(ff);
         return (Side)iSide;
     }
+
+
 }

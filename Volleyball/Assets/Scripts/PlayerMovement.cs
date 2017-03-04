@@ -15,6 +15,7 @@ public class PlayerMovement : MonoBehaviour {
     public bool isWalking;
     public bool isStopped;
     public bool followBall;
+    public bool faceNet;
     public Transform ground;
     public bool relativeMovement = true;
     [System.NonSerialized]
@@ -73,7 +74,7 @@ public class PlayerMovement : MonoBehaviour {
 
             Vector3 desiredMove;
             desiredMove = relativeMovement? movementDirection.x * transform.right + movementDirection.y * transform.forward: movementDirection.x * Vector3.right + movementDirection.y * Vector3.forward;
-            if (!relativeMovement)
+            if (!relativeMovement && !faceNet)
             {
                 if (!followBall)
                 {
@@ -91,6 +92,13 @@ public class PlayerMovement : MonoBehaviour {
                     float diffAngle = Vector3.Angle(ballVelocity, distance) * Mathf.Sign(distance.z);
                     float angle = ballVelocity.magnitude > Mathf.Epsilon? ballAngle - diffAngle: ballAngle;
                     transform.localRotation = Quaternion.Euler(Vector3.up * angle);
+                }
+            }
+            else
+            {
+                if(faceNet)
+                {
+                    transform.localRotation = Quaternion.Euler(Vector3.up * (90 + 90 * (int)myPass.currentSide));
                 }
             }
             RaycastHit hitInfo;

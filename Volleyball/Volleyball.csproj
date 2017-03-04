@@ -84,12 +84,14 @@
     <Compile Include="Assets\Scripts\CameraFollow.cs" />
     <Compile Include="Assets\Scripts\CourtScript.cs" />
     <Compile Include="Assets\Scripts\InGameUI.cs" />
+    <Compile Include="Assets\Scripts\LocationRelation.cs" />
     <Compile Include="Assets\Scripts\MyMouseLook.cs" />
     <Compile Include="Assets\Scripts\NetScrpt.cs" />
     <Compile Include="Assets\Scripts\PassDownEvents.cs" />
     <Compile Include="Assets\Scripts\PlayerMovement.cs" />
     <Compile Include="Assets\Scripts\Rules.cs" />
     <Compile Include="Assets\Scripts\SpecialAction.cs" />
+    <Compile Include="Assets\Scripts\Strategies\Strategy.cs" />
     <Compile Include="Assets\Scripts\VolleyballScript.cs" />
   </ItemGroup>
   <ItemGroup>
