@@ -926,13 +926,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   walkSpeed: 5
   sprintSpeed: 10
-  jumpSpeed: 6
+  jumpSpeed: 5
   jumping: 0
   gravityMultiplier: 3
   jump: 0
   stickToGroundForce: 10
   isGrounded: 0
   isWalking: 0
+  isStopped: 0
+  followBall: 0
+  faceNet: 0
   ground: {fileID: 4383896815954378}
   relativeMovement: 1
 --- !u!114 &114225345423343298
@@ -948,6 +951,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   BallLandingIndicator: {fileID: 1643604688047644, guid: fd24239944a84a94b8d2ebb881ce4a7f,
     type: 2}
+  aimSpot: {x: 0, y: 0, z: 0}
   tester1: 0.5
   tester2: 0.82
   tester3: 1
@@ -967,6 +971,9 @@ MonoBehaviour:
   lobAgjust: 1
   maxSpin: 5
   aimingDetail: 0.604
+  distanceToBallLanding: {x: 0, y: 0, z: 0}
+  squat: 0
+  hitTime: 0
   ballSpin: {x: 0, y: 0}
   smashScrollSpeed: 0.5
   lobScrollSpeed: 0.25

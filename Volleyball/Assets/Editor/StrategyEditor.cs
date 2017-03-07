@@ -7,13 +7,11 @@ using UnityEditor;
 [CustomPropertyDrawer(typeof(ListListPass))]
 public class ListListPassEditor : PropertyDrawer
 {
-    ListPass temp;
     GUIContent buttonInfo;
     Vector2 buttonSize;
 
     void OnEnable()
     {
-        temp = new ListPass();
         buttonSize = Vector2.one * 100;
         buttonInfo = new GUIContent();
         buttonInfo.image = (Texture)Resources.Load("addButton");
@@ -42,6 +40,7 @@ public class ListListPassEditor : PropertyDrawer
         for (int i = 0; i < property.FindPropertyRelative("size").intValue; i++)
         {
             position = EditorGUILayout.BeginVertical();
+
             EditorGUI.indentLevel = 1;
             remove = GUI.Button(new Rect(position.position - Vector2.right * buttonSize.x + Vector2.right * EditorGUI.indentLevel * indentConst, buttonSize), "^");
             add = GUI.Button(new Rect(position.position - Vector2.right * buttonSize.x + Vector2.right * (EditorGUI.indentLevel - 1) * indentConst, buttonSize), "v");
@@ -68,35 +67,19 @@ public class ListListPassEditor : PropertyDrawer
         EditorGUILayout.EndVertical();
         EditorGUI.EndProperty();
     }
-
-    /*public override void OnInspectorGUI()
-    {
-        serializedObject.Update();
-
-        EditorGUILayout.PropertyField(passType);
-        if(passType.enumValueIndex == 0)
-        {
-            EditorGUILayout.PropertyField(intPass);
-        }
-        else
-        {
-            EditorGUILayout.PropertyField(vecPass);
-        }
-
-        serializedObject.ApplyModifiedProperties();
-    }*/
 }
 
 [CustomPropertyDrawer(typeof(ListPass))]
 public class ListPassEditor : PropertyDrawer
 {
-    ListPass temp;
     GUIContent buttonInfo;
     Vector2 buttonSize;
+    Dictionary<string, bool> fold;
+    string myLabel;
+    //bool fold = true;
 
     void OnEnable()
     {
-        temp = new ListPass();
         buttonSize = Vector2.one * 100;
         buttonInfo = new GUIContent();
         buttonInfo.image = (Texture)Resources.Load("addButton");
@@ -104,120 +87,205 @@ public class ListPassEditor : PropertyDrawer
 
     public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
     {
+        myLabel = label.text;
         if (buttonInfo == null)
         {
             buttonInfo = new GUIContent();
             buttonInfo.image = (Texture)Resources.Load("addButton");
             buttonSize = Vector2.one * 15;
         }
+
+        if (fold == null)
+        {
+            fold = new Dictionary<string, bool>();
+            fold.Add(myLabel, false);
+        }
+        if (!fold.ContainsKey(myLabel))
+        {
+            fold.Add(myLabel, false);
+        }
         EditorGUI.BeginProperty(position, label, property);
-        EditorGUI.indentLevel = 2;
+        EditorGUI.indentLevel += 2;//EditorGUI.indentLevel = 3;
         float indentConst = 15;
-        if (GUI.Button(new Rect(position.position - Vector2.right * buttonSize.x + Vector2.right * EditorGUI.indentLevel * indentConst, buttonSize), "+") && property.FindPropertyRelative("size").intValue < property.FindPropertyRelative("capacity").intValue++)
+        if (GUI.Button(new Rect(position.position - Vector2.right * buttonSize.x + Vector2.right * (EditorGUI.indentLevel - 1) * indentConst, buttonSize), "+") && property.FindPropertyRelative("size").intValue < property.FindPropertyRelative("capacity").intValue++)
         {
             property.FindPropertyRelative("content").InsertArrayElementAtIndex(property.FindPropertyRelative("size").intValue);
             property.FindPropertyRelative("size").intValue++;
         }
         bool remove;
         bool add;
-        EditorGUI.LabelField(position,label);
+        fold[myLabel] = EditorGUI.Foldout(position, fold[myLabel], label);
         EditorGUILayout.BeginVertical();
-        for (int i = 0; i < property.FindPropertyRelative("size").intValue; i++)
+        if (fold[myLabel])
         {
-            position = EditorGUILayout.BeginVertical();
-            EditorGUI.indentLevel = 3;
-            remove = GUI.Button(new Rect(position.position - Vector2.right * buttonSize.x + Vector2.right * EditorGUI.indentLevel * indentConst, buttonSize), "-");
-            add = GUI.Button(new Rect(position.position - Vector2.right * buttonSize.x + Vector2.right * (EditorGUI.indentLevel - 1) * indentConst, buttonSize), "+");
-            if (add)
+            EditorGUI.indentLevel+= 1;
+            for (int i = 0; i < property.FindPropertyRelative("size").intValue; i++)
             {
-                property.FindPropertyRelative("content").InsertArrayElementAtIndex(i);
-                property.FindPropertyRelative("size").intValue++;
-            }
-            if (!remove)
-            {
-                EditorGUILayout.PropertyField(property.FindPropertyRelative("content").GetArrayElementAtIndex(i));
-            }
-            else
-            {
-                property.FindPropertyRelative("size").intValue--;
-                property.FindPropertyRelative("content").DeleteArrayElementAtIndex(i);
-                i--;
-            }
-            EditorGUILayout.EndVertical();
+                position = EditorGUILayout.BeginVertical();
+                //EditorGUI.indentLevel = 4;
+                remove = GUI.Button(new Rect(position.position - Vector2.right * buttonSize.x + Vector2.right * (EditorGUI.indentLevel) * indentConst, buttonSize), "-");
+                add = GUI.Button(new Rect(position.position - Vector2.right * buttonSize.x + Vector2.right * (EditorGUI.indentLevel - 1) * indentConst, buttonSize), "+");
+                if (add)
+                {
+                    property.FindPropertyRelative("content").InsertArrayElementAtIndex(i);
+                    property.FindPropertyRelative("size").intValue++;
+                }
+                if (!remove)
+                {
+                    EditorGUILayout.PropertyField(property.FindPropertyRelative("content").GetArrayElementAtIndex(i));
+                }
+                else
+                {
+                    property.FindPropertyRelative("size").intValue--;
+                    property.FindPropertyRelative("content").DeleteArrayElementAtIndex(i);
+                    i--;
+                }
+                EditorGUILayout.EndVertical();
 
+            }
+            EditorGUI.indentLevel -= 2;
         }
-        EditorGUI.indentLevel = 2;
-
+        //EditorGUI.indentLevel = 3;
+        EditorGUI.indentLevel -= 2; 
         EditorGUILayout.EndVertical();
         EditorGUI.EndProperty();
     }
-
-    /*public override void OnInspectorGUI()
-    {
-        serializedObject.Update();
-
-        EditorGUILayout.PropertyField(passType);
-        if(passType.enumValueIndex == 0)
-        {
-            EditorGUILayout.PropertyField(intPass);
-        }
-        else
-        {
-            EditorGUILayout.PropertyField(vecPass);
-        }
-
-        serializedObject.ApplyModifiedProperties();
-    }*/
 }
 
 [CustomPropertyDrawer(typeof(Pass))]
 public class PassEditor : PropertyDrawer
 {
-    SerializedProperty passType;
-    SerializedProperty vecPass;
-    SerializedProperty intPass;
-
-    void OnEnable()
+    public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
     {
+        EditorGUI.BeginProperty(position, label, property);
+        
+        //EditorGUI.BeginChangeCheck();
+        EditorGUI.PrefixLabel(position, label);
+        EditorGUILayout.PropertyField(property.FindPropertyRelative("visible"));
+        EditorGUILayout.PropertyField(property.FindPropertyRelative("type"));
+        EditorGUILayout.PropertyField(property.FindPropertyRelative("speed"));
+        if (property.FindPropertyRelative("type").enumValueIndex == 0)
+        {
+            EditorGUILayout.PropertyField(property.FindPropertyRelative("position"));
+            if (property.FindPropertyRelative("position").intValue < 1)
+                property.FindPropertyRelative("position").intValue = 1;
+            if (property.FindPropertyRelative("position").intValue > CourtScript.MaxNumberOfPlayers)
+                property.FindPropertyRelative("position").intValue = CourtScript.MaxNumberOfPlayers;
+        }
+        else
+        {
+            EditorGUILayout.PropertyField(property.FindPropertyRelative("location"));
+        }
+        
+        EditorGUI.EndProperty();
     }
+}
+
+[CustomPropertyDrawer(typeof(Path))]
+public class PathEditor : PropertyDrawer
+{
+    Vector2[] path;
+    int index = 0;
+    int size;
+    bool delete;
 
     public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
     {
         EditorGUI.BeginProperty(position, label, property);
-        position = EditorGUI.PrefixLabel(position,label);
-        float y = 20;
-        position.position = position.position + Vector2.up * y;
-        EditorGUILayout.PropertyField(property.FindPropertyRelative("type"));
-        if(property.FindPropertyRelative("type").enumValueIndex == 0)
+        int arraySize = 15;
+        if (path == null || property.FindPropertyRelative("points").arraySize != arraySize)
+            InitializeArray(property.FindPropertyRelative("points"), arraySize);
+        if (property.FindPropertyRelative("size").intValue > 0)
         {
-            position.position = position.position + Vector2.up * y;
-            EditorGUILayout.PropertyField(property.FindPropertyRelative("position"));
+            EditorGUI.indentLevel = 1;
+            if(size != property.FindPropertyRelative("size").intValue)
+            {
+                size = property.FindPropertyRelative("size").intValue;
+                index = size - 1;
+            }
+    
+            position = EditorGUI.PrefixLabel(position, label);
+            position.position = new Vector2(15 + EditorGUI.indentLevel * 15,position.position.y);
+            if (GUI.Button(new Rect(position.position - Vector2.right * 15 * EditorGUI.indentLevel, Vector2.one * 15), "-"))
+            {
+                DeleteElement(property.FindPropertyRelative("points"), index);
+                property.FindPropertyRelative("size").intValue--;
+                UpdatePathPoints(property.FindPropertyRelative("points"));
+                size = property.FindPropertyRelative("size").intValue;
+                if (size < 1)
+                    return;
+            }
 
+            index = EditorGUILayout.IntField("Points Index", index+1)-1;
+            if (index >= property.FindPropertyRelative("size").intValue)
+                index = property.FindPropertyRelative("size").intValue - 1;
+            else if (index < 0)
+                index = 0;
+
+            EditorGUI.BeginChangeCheck();
+            path[index] = EditorGUILayout.Vector2Field("Path Point " + (index + 1).ToString(), path[index]);
+            if (Mathf.Abs(path[index].x) < 4.5f && path[index].y < .5f)
+                path[index].y = .5f;
+            if(EditorGUI.EndChangeCheck())
+                property.FindPropertyRelative("points").GetArrayElementAtIndex(index).vector3Value = V2toV3(path[index]);
+
+            EditorGUILayout.PropertyField(property.FindPropertyRelative("shouldJump"));
+            if (property.FindPropertyRelative("shouldJump").boolValue)
+            {
+                EditorGUILayout.PropertyField(property.FindPropertyRelative("stopJump"));
+                EditorGUILayout.PropertyField(property.FindPropertyRelative("jumpTime"));
+                if(property.FindPropertyRelative("jumpTime").enumValueIndex == 1)
+                {
+                    EditorGUILayout.PropertyField(property.FindPropertyRelative("timeOffset"));
+                }
+            }
+
+            EditorGUI.indentLevel = 0;
         }
-        else
-        {
-            position.position = position.position + Vector2.up * y;
-            EditorGUILayout.PropertyField(property.FindPropertyRelative("location"));
-        }
+        
         EditorGUI.EndProperty();
     }
 
-    /*public override void OnInspectorGUI()
+    Vector3 V2toV3(Vector2 temp)
     {
-        serializedObject.Update();
+        return new Vector3(temp.x, 1.1f, temp.y);
+    }
 
-        EditorGUILayout.PropertyField(passType);
-        if(passType.enumValueIndex == 0)
-        {
-            EditorGUILayout.PropertyField(intPass);
-        }
-        else
-        {
-            EditorGUILayout.PropertyField(vecPass);
-        }
+    Vector2 V3toV2(Vector3 temp)
+    {
+        return new Vector2(temp.x, temp.z);
+    }
 
-        serializedObject.ApplyModifiedProperties();
-    }*/
+    void DeleteElement(SerializedProperty array, int index)
+    {
+        for(int i = index; i < size -1; i++)
+        {
+            array.GetArrayElementAtIndex(i).vector3Value = array.GetArrayElementAtIndex(i + 1).vector3Value;
+        }
+    }
+
+    void UpdatePathPoints( SerializedProperty array)
+    {
+        for(int i = 0; i < size; i++)
+        {
+            path[i] = V3toV2(array.GetArrayElementAtIndex(i).vector3Value);
+        }
+    }
+
+    void InitializeArray(SerializedProperty property, int size)
+    {
+        path = new Vector2[size];
+
+        for (int i = property.arraySize; i < size; i++)
+            property.InsertArrayElementAtIndex(i);
+        for (int i = property.arraySize; i > size; i--)
+            property.DeleteArrayElementAtIndex(i - 1);
+
+        for(int i = 0; i < size; i ++)
+        {
+            path[i] = V3toV2(property.GetArrayElementAtIndex(i).vector3Value);
+        }
+    }
 }
 
 
@@ -230,8 +298,11 @@ public class StrategyEditor : Editor {
     SerializedProperty courtPositions;
     SerializedProperty defensePassLocation;
     SerializedProperty pass;
+    SerializedProperty path;
+    List<SerializedProperty> balls;
     Texture courtImage;
     Texture ballImage;
+    Texture[] Line;
     Vector2[] players;
     Vector2[] oldPlayers;
     Texture[] playerPics;
@@ -243,7 +314,11 @@ public class StrategyEditor : Editor {
     Vector2 size;
     Vector2 ballSize;
     Vector2 playerSize;
+    Vector2 myPosition;
+    Vector2 pointSize;
+    float lineSize = 5;
     float y;
+    bool initial = true;
 	// Use this for initialization
 	void Start () {
 		
@@ -257,37 +332,45 @@ public class StrategyEditor : Editor {
         courtPositions = serializedObject.FindProperty("defaultPositions");
         defensePassLocation = serializedObject.FindProperty("defensePassToLocation");
         pass = serializedObject.FindProperty("myPass");
+        path = serializedObject.FindProperty("movementPath");
         InitializePlayers();
         InitializeCourt();
-        buttonSize = Vector2.one * 25;
+        buttonSize = Vector2.one * 20;
         buttonInfo = new GUIContent();
         buttonInfo.image = (Texture)Resources.Load("AddButton");
-        
-
+        balls = new List<SerializedProperty>();
+        initial = true;
     }
 
     void InitializePlayers()
     {
-        players = new Vector2[6];
+        players = new Vector2[CourtScript.MaxNumberOfPlayers];
         playerPics = new Texture[players.Length];
         oldPlayers = new Vector2[players.Length];
-        
-        if(courtPositions.arraySize != 6)
+        Line = new Texture[players.Length];
+        if(path.arraySize != CourtScript.MaxNumberOfPlayers)
         {
-            MonoBehaviour.print(courtPositions.arraySize);
-            for (int i = courtPositions.arraySize; i < 6; i++)
+            for (int i = path.arraySize; i < CourtScript.MaxNumberOfPlayers; i++)
+                path.InsertArrayElementAtIndex(i);
+            for (int i = path.arraySize; i > CourtScript.MaxNumberOfPlayers; i--)
+                path.DeleteArrayElementAtIndex(i - 1);
+        }
+        if(courtPositions.arraySize != CourtScript.MaxNumberOfPlayers)
+        {
+            for (int i = courtPositions.arraySize; i < CourtScript.MaxNumberOfPlayers; i++)
                 courtPositions.InsertArrayElementAtIndex(i);
-            for (int i = courtPositions.arraySize; i > 6; i--)
+            for (int i = courtPositions.arraySize; i > CourtScript.MaxNumberOfPlayers; i--)
                 courtPositions.DeleteArrayElementAtIndex(i - 1);
             for (int i = 0; i < players.Length; i++)
             {
-                int position = (i + 5) % 6;
+                int position = (i + 5) % CourtScript.MaxNumberOfPlayers;
                 int horizPosition = position % 3;
                 float depth = position < 3 ? 15 / 90f : 60 / 90f;
                 float hPosition = -horizPosition * 30 / 90f + 30 / 90f;
                 hPosition = position < 3 ? hPosition : -hPosition;
                 players[i] = new Vector2(hPosition, depth);
                 playerPics[i] = (Texture2D)Resources.Load("player" + (i + 1).ToString());
+                Line[i] = (Texture)Resources.Load("p" + (i + 1).ToString() + "Line");
                 courtPositions.GetArrayElementAtIndex(i).vector3Value = V2toV3(players[i]);
             }
 
@@ -296,8 +379,10 @@ public class StrategyEditor : Editor {
         {
             for(int i = 0; i < courtPositions.arraySize; i++)
             {
-                players[i] = V3toV2(courtPositions.GetArrayElementAtIndex(i).vector3Value);
-                playerPics[i] = (Texture2D)Resources.Load("player" + (i+1).ToString());
+                players[i] = new Vector2(courtPositions.GetArrayElementAtIndex(i).vector3Value.x, courtPositions.GetArrayElementAtIndex(i).vector3Value.z)/9;
+                playerPics[i] = (Texture2D)Resources.Load("player" + (i + 1).ToString());
+                Line[i] = (Texture)Resources.Load("p" + (i + 1).ToString() + "Line");
+                
             }
         }
         playerSize = Vector2.one * 40;
@@ -309,6 +394,7 @@ public class StrategyEditor : Editor {
         position = new Vector2(55, 100);
         size = new Vector2(450, 450);
         ballSize = Vector2.one * 25;
+        pointSize = Vector2.one * 12;
         courtImage = (Texture)Resources.Load("court");
         ballImage = (Texture)Resources.Load("ball");
     }
@@ -320,11 +406,10 @@ public class StrategyEditor : Editor {
         y = 0;
         serializedObject.Update();
         EditorGUILayout.PropertyField(strategyType);
-        numOfPlayers.intValue = EditorGUILayout.IntField(numOfPlayers.intValue);
+        numOfPlayers.intValue = EditorGUILayout.IntField("Number of Players", numOfPlayers.intValue);
         AddY(100);
-        
         position.y = y;
-        GUI.DrawTexture(new Rect(position,size), courtImage);
+        GUI.DrawTexture(new Rect(position, size), courtImage);
         AddY(size.y + 25);
         GUILayout.Space(size.y + 25);
         
@@ -333,26 +418,136 @@ public class StrategyEditor : Editor {
         {
             players[i] = Vector2.Scale(EditorGUILayout.Vector2Field("Player" + (i+1).ToString(), Vector2.Scale(players[i],Vector2.one * 9)),Vector2.one * 1/9);
             GUI.DrawTexture(new Rect(Vector2.Scale(players[i], size) + PlaceOnCourt(playerSize), playerSize), playerPics[i]);
+            if (strategyType.enumValueIndex == 0)
+            {
+                if(path.GetArrayElementAtIndex(i).FindPropertyRelative("points").arraySize < 1)
+                    EditorGUILayout.PropertyField(path.GetArrayElementAtIndex(i));
+                if (GUI.Button(new Rect(Vector2.Scale(players[i], size) + PlaceOnCourt(playerSize) + buttonSize/2, buttonSize), "+"))
+                {
+                    if (path.GetArrayElementAtIndex(i).FindPropertyRelative("points").arraySize > path.GetArrayElementAtIndex(i).FindPropertyRelative("size").intValue)
+                    {
+                        path.GetArrayElementAtIndex(i).FindPropertyRelative("size").intValue++;
+                    }
+                    
+                }
+
+                if (path.GetArrayElementAtIndex(i).FindPropertyRelative("size").intValue > 0)
+                {
+                    EditorGUILayout.PropertyField(path.GetArrayElementAtIndex(i));
+                    Vector2 previousPosition = Vector2.Scale(players[i], size) + PlaceOnCourt(playerSize) + playerSize/ 2 - lineSize/2 * Vector2.up;
+                    Vector2 distance;
+                    Vector2 previousSize = playerSize;
+                    float angle;
+                    for (int p = 0; p < path.GetArrayElementAtIndex(i).FindPropertyRelative("size").intValue; p++)
+                    {
+                        myPosition = Vector2.Scale(V3toV2(path.GetArrayElementAtIndex(i).FindPropertyRelative("points").GetArrayElementAtIndex(p).vector3Value), size) + PlaceOnCourt(pointSize);
+                        GUI.DrawTexture(new Rect(myPosition, pointSize), playerPics[i]);
+                        myPosition += pointSize/2 - lineSize/2 * Vector2.up;
+                        distance = myPosition- previousPosition;
+                        angle = Mathf.Atan2(distance.y,distance.x) * Mathf.Rad2Deg;
+                        GUIUtility.RotateAroundPivot(angle, previousPosition + lineSize/2 * Vector2.up);
+                        //GUI.DrawTextureWithTexCoords(new Rect(previousPosition, new Vector2(distance.magnitude, lineSize)), Line, new Rect(Vector2.zero, new Vector2(distance.magnitude/lineSize, 1)));
+                        GUI.DrawTexture(new Rect(previousPosition, new Vector2(distance.magnitude, lineSize)), Line[i]);
+                        GUIUtility.RotateAroundPivot(-angle, previousPosition + lineSize/2 * Vector2.up);
+                        previousPosition = myPosition;
+                        previousSize = pointSize;
+                    }
+                }
+
+            }
             if (oldPlayers[i] != players[i])
             {
                 oldPlayers[i] = players[i];
                 courtPositions.GetArrayElementAtIndex(i).vector3Value = V2toV3(players[i]);
             }
             AddY();
+            
         }
-        
+
+
+
         //drawing for offense
         if (strategyType.enumValueIndex == 0)
         {
+            //GUI.changed = false;
+            EditorGUI.BeginChangeCheck();
             EditorGUILayout.PropertyField(pass);
+            if (EditorGUI.EndChangeCheck() | initial)
+            {
+                for (int i = 0; i < pass.FindPropertyRelative("size").intValue; i++)
+                {
+                    for (int b = 0; b < pass.FindPropertyRelative("lcontent").GetArrayElementAtIndex(i).FindPropertyRelative("size").intValue; b++)
+                    {
+                        SerializedProperty myProp = pass.FindPropertyRelative("lcontent").GetArrayElementAtIndex(i).FindPropertyRelative("content").GetArrayElementAtIndex(b);
+                        if (myProp.FindPropertyRelative("visible").boolValue && !balls.Exists(x=> x == myProp))
+                        {
+                            balls.Add(myProp);
+                        }
+                        string path = myProp.propertyPath.Remove(myProp.propertyPath.IndexOf(".", myProp.propertyPath.LastIndexOf(".") - 7));
+                        //MonoBehaviour.print(path.Substring(myProp.propertyPath.IndexOf(".") +1));
+                        //MonoBehaviour.print(myProp.serializedObject.FindProperty(path).name);
+                    }
+                }
+            }
+            for(int i = 0; i < balls.Count; i++)
+            {
+                if (balls[i] != null)
+                {//pass to person
+                    string index = balls[i].propertyPath.Substring(balls[i].propertyPath.LastIndexOf("[") + 1).Remove(balls[i].propertyPath.Substring(balls[i].propertyPath.LastIndexOf("[") + 1).Length - 1);
+                    int begging = balls[i].propertyPath.IndexOf("[");
+                    string rootIndex = balls[i].propertyPath.Substring(begging+1, balls[i].propertyPath.IndexOf("]") - begging-1);
+                    
+                    int mySize = balls[i].serializedObject.FindProperty(balls[i].propertyPath.Substring(0, balls[i].propertyPath.IndexOf(".", 10))).GetArrayElementAtIndex(System.Convert.ToInt32(rootIndex)).FindPropertyRelative("size").intValue;
+                    if(System.Convert.ToInt32(index) >= mySize)
+                    {
+                        balls.RemoveAt(i);
+                        i--;
+                        continue;
+                    }
+
+                    if (balls[i].FindPropertyRelative("type").enumValueIndex == 0)
+                    {
+                        try
+                        {
+                            GUI.DrawTexture(new Rect(Vector2.Scale(players[balls[i].FindPropertyRelative("position").intValue - 1], size) + PlaceOnCourt(ballSize), ballSize), ballImage);
+                            //MonoBehaviour.print(index + ", " + rootIndex + ",. "+ balls[i].serializedObject.FindProperty(balls[i].propertyPath.Substring(0, balls[i].propertyPath.IndexOf(".",10))).GetArrayElementAtIndex(System.Convert.ToInt32(rootIndex)).FindPropertyRelative("size").intValue);
+                        }
+                        catch(System.Exception e)
+                        {
+                            MonoBehaviour.print("error " + balls[i].propertyPath.Substring(0, balls[i].propertyPath.IndexOf(".",10)));
+                            MonoBehaviour.print(e.Message);
+                        }
+                    }
+                    //pass to location
+                    else
+                    {
+                        GUI.DrawTexture(new Rect(Vector2.Scale(V3toV2(balls[i].FindPropertyRelative("location").vector3Value), size) + PlaceOnCourt(ballSize), ballSize), ballImage);
+                    }
+                    if (!balls[i].FindPropertyRelative("visible").boolValue)
+                    {
+                        balls.RemoveAt(i);
+                        i--;
+                    }
+                }
+                else
+                {
+                    if (!balls[i].FindPropertyRelative("visible").boolValue)
+                    {
+                        balls.RemoveAt(i);
+                        i--;
+                    }
+                }
+            }
         }
         //drawing for defense
         else
         {
-            //GUI.DrawTexture(new Rect(Vector2.Scale(V3toV2(defensePassLocation.vector3Value), size) + PlaceOnCourt(ballSize), ballSize), ballImage);
         }
-        
+        //GUI.DrawTexture(new Rect(Vector2.Scale(V3toV2(defensePassLocation.vector3Value), size) + PlaceOnCourt(ballSize), ballSize), ballImage);
+        initial = false;
+        initial = false;
         serializedObject.ApplyModifiedProperties();
+        
         //GUI.Button(new Rect(new Vector2(10,y), buttonSize), buttonInfo);
     }
 
@@ -363,13 +558,13 @@ public class StrategyEditor : Editor {
 
     Vector3 V2toV3(Vector2 temp)
     {
-        Vector2.Scale(temp, Vector2.one * 9);
+        temp = Vector2.Scale(temp, Vector2.one * 9);
         return new Vector3(temp.x, 1.1f, temp.y);
     }
     
     Vector2 V3toV2(Vector3 temp)
     {
-        Vector3.Scale(temp, Vector3.one * 1/9);
+        temp = Vector3.Scale(temp, Vector3.one * 1/9);
         return new Vector2(temp.x, temp.z);
     }
 

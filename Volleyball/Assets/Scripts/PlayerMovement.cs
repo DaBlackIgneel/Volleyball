@@ -62,9 +62,7 @@ public class PlayerMovement : MonoBehaviour {
         if (isGrounded)
         {
             //sets the desired speed whether walking or running
-            float speed = walkSpeed;
-            if (!isWalking)
-                speed = sprintSpeed;
+            float speed = isWalking? walkSpeed : sprintSpeed;
 
             //gets the horizontal and vertical inputs
             //float horizontal = Input.GetAxis("Horizontal");
@@ -73,12 +71,12 @@ public class PlayerMovement : MonoBehaviour {
             //calculates the desired movement that is tangent to the surface below
 
             Vector3 desiredMove;
-            desiredMove = relativeMovement? movementDirection.x * transform.right + movementDirection.y * transform.forward: movementDirection.x * Vector3.right + movementDirection.y * Vector3.forward;
+            desiredMove = relativeMovement ? movementDirection.x * transform.right + movementDirection.y * transform.forward : movementDirection.x * Vector3.right + movementDirection.y * Vector3.forward;
             if (!relativeMovement && !faceNet)
             {
                 if (!followBall)
                 {
-                    
+
                     transform.localRotation = Quaternion.Euler(Vector3.up * Mathf.Atan2(desiredMove.y, desiredMove.x));
                     Debug.DrawRay(transform.position, desiredMove);
                 }
@@ -86,17 +84,17 @@ public class PlayerMovement : MonoBehaviour {
                 {
                     Vector3 ballVelocity = Vector3.ProjectOnPlane(myPass.vBall.rb.velocity, Vector3.up);
                     Vector3 distance = transform.position - myPass.vBall.transform.position;
-                    float ballAngle = ballVelocity.x > Mathf.Epsilon || ballVelocity.z > Mathf.Epsilon? 
-                            Mathf.Atan2(ballVelocity.z, ballVelocity.x)* Mathf.Rad2Deg - 180: (int)transform.eulerAngles.y;
+                    float ballAngle = ballVelocity.x > Mathf.Epsilon || ballVelocity.z > Mathf.Epsilon ?
+                            Mathf.Atan2(ballVelocity.z, ballVelocity.x) * Mathf.Rad2Deg - 180 : (int)transform.eulerAngles.y;
 
                     float diffAngle = Vector3.Angle(ballVelocity, distance) * Mathf.Sign(distance.z);
-                    float angle = ballVelocity.magnitude > Mathf.Epsilon? ballAngle - diffAngle: ballAngle;
+                    float angle = ballVelocity.magnitude > Mathf.Epsilon ? ballAngle - diffAngle : ballAngle;
                     transform.localRotation = Quaternion.Euler(Vector3.up * angle);
                 }
             }
             else
             {
-                if(faceNet)
+                if (faceNet)
                 {
                     transform.localRotation = Quaternion.Euler(Vector3.up * (90 + 90 * (int)myPass.currentSide));
                 }
@@ -114,7 +112,7 @@ public class PlayerMovement : MonoBehaviour {
 
             jumping = false;
             //if you want to jump, then jump
-            if(jump)
+            if (jump)
             {
                 //add the initial jumpspeed
                 moveDir.y = jumpSpeed;
@@ -123,8 +121,8 @@ public class PlayerMovement : MonoBehaviour {
             }
 
             //move the player in the desired movement
-            if(rb.velocity != moveDir)
-                rb.AddForce((moveDir - rb.velocity) * rb.mass,ForceMode.Impulse);
+            if (rb.velocity != moveDir)
+                rb.AddForce((moveDir - rb.velocity) * rb.mass, ForceMode.Impulse);
 
         }
 

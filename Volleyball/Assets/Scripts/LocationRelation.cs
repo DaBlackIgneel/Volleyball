@@ -6,7 +6,20 @@ public class LocationRelation : MonoBehaviour {
 
     public CourtDimensions.Section tempSection = CourtDimensions.Section.BackLeft;
     public Side tempSide = Side.Left;
+    public Vector3 aimSpot;
+    public Dictionary<Side, SpecialAction> ClosestPlayerToBall
+    {
+        get { return ballHandler; }
+    }
 
+    public float TimeTillBallReachesLocation
+    {
+        get {
+            ballTime = Mathf.Abs((aimSpot.x - vBall.transform.position.x) / vBall.rb.velocity.x);
+            return ballTime; }
+    }
+
+    float ballTime;
     CourtScript court;
     VolleyballScript vBall;
     CourtDimensions.Rectangle aimingSection;
@@ -22,6 +35,7 @@ public class LocationRelation : MonoBehaviour {
         aimingSection = court.dimensions.CourtSection(tempSide, tempSection);
         temp = GameObject.CreatePrimitive(PrimitiveType.Cube);
         ballHandler = new Dictionary<Side, SpecialAction>();
+        StartCoroutine("UpdateClosestPlayerToBall");
     }
 	
 	// Update is called once per frame
@@ -32,9 +46,14 @@ public class LocationRelation : MonoBehaviour {
 
     }
 
+    void OnDestroy()
+    {
+        StopAllCoroutines();
+    }
+
     void FixedUpdate()
     {
-
+        
     }
 
     public SpecialAction FindClosestPlayerToBall(Side tempSide)
@@ -64,12 +83,20 @@ public class LocationRelation : MonoBehaviour {
         return ballHandler[tempSide];
     }
 
+    IEnumerator UpdateClosestPlayerToBall()
+    {
+        for (;;)
+        {
+            FindClosestPlayerToBall(Side.Left);
+            FindClosestPlayerToBall(Side.Right);
+            yield return new WaitForSeconds(.05f);
+        }
+    }
 
     public Vector3 AimSpot(SpecialAction player)
     {
         try
         {
-            print(player.vBall.GetSideTouches(player.currentSide));
             return Vector3.Scale(court.currentStrategy[player.currentSide][StrategyType.Offense].GetPassLocation(player.vBall.GetSideTouches(player.currentSide), player), new Vector3((int)player.currentSide, 1,(int)player.currentSide));
         }
         catch
@@ -77,6 +104,33 @@ public class LocationRelation : MonoBehaviour {
             return aimingSection.upperRightCorner - new Vector3(Random.Range(0, aimingSection.Dimension().x), -.2f, Random.Range(0, aimingSection.Dimension().z));
         }
         
+    }
+    public Pass AimSpotInfo(SpecialAction player)
+    {
+        try
+        {
+            return court.currentStrategy[player.currentSide][StrategyType.Offense].GetPassInformation(player.vBall.GetSideTouches(player.currentSide), player);
+        }
+        catch
+        {
+            return new Pass(PassType.Location,aimingSection.upperRightCorner - new Vector3(Random.Range(0, aimingSection.Dimension().x), -.2f, Random.Range(0, aimingSection.Dimension().z)));
+        }
+
+    }
+
+    public static Path GetMovement(SpecialAction player)
+    {
+        return player.Court.currentStrategy[player.currentSide][StrategyType.Offense].movementPath[player.currentPosition-1];
+    }
+
+    public static Vector3 StrategyLocationToCourt(Vector3 loc, Side currentSide)
+    {
+        return Vector3.Scale(loc, new Vector3((int)currentSide, 1, (int)currentSide));
+    }
+
+    public static Vector3 PathLocationToCourt(Vector3 loc, Side currentSide)
+    {
+        return Vector3.Scale(loc, new Vector3(-(int)currentSide, 1, (int)currentSide));
     }
 
     public bool IsValidPlayer(SpecialAction player)
@@ -99,6 +153,10 @@ public class LocationRelation : MonoBehaviour {
             if (ballPosition.y > PredictBallPosition(maxHeight).position.y)
             {
                 predictedPosition = PredictBallPosition(maxHeight).position;
+            }
+            else if(ballPosition.y > .2f)
+            {
+                predictedPosition = ballPosition;
             }
             else
             {

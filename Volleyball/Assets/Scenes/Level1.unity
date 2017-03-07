@@ -6771,6 +6771,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   tempSection: 5
   tempSide: -1
+  aimSpot: {x: 0, y: 0, z: 0}
 --- !u!1 &1669795472
 GameObject:
   m_ObjectHideFlags: 0

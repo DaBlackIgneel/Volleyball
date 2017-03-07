@@ -103,6 +103,10 @@ public class CourtScript : MonoBehaviour {
         get { return localRelate; }
     }
 
+    public static int MaxNumberOfPlayers
+    {
+        get { return 6; }
+    }
 
     LocationRelation localRelate;
     float currentTime;
