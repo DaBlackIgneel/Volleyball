@@ -113,6 +113,7 @@ public struct Pass
     public PassSpeed speed;
     public int position;
     public Vector3 location;
+    public Vector3 offset;
 
     [SerializeField]
     bool visible;
@@ -124,6 +125,7 @@ public struct Pass
         location = Vector3.zero;
         speed = PassSpeed.SemiFast;
         visible = false;
+        offset = Vector3.zero;
     }
 
     public Pass(PassType t, Vector3 loc)
@@ -133,6 +135,14 @@ public struct Pass
         position = 0;
         speed = PassSpeed.SemiFast;
         visible = false;
+        offset = Vector3.zero;
+    }
+
+    public override string ToString()
+    {
+        string message = "Pass: \n" + "Speed: " + speed.ToString() + ", Type: " + type.ToString();
+        message += type == PassType.Person ? "Pass to Position: " + position.ToString() : "Pass to Location: " + location.ToString();
+        return message;
     }
 }
 
@@ -140,7 +150,7 @@ public struct Pass
 public struct Path
 {
     public Vector3[] points;
-    public bool[] shouldWalk;
+    public bool[] walkToThisPoint;
     public bool shouldJump;
     public bool stopJump;
     public JumpTime jumpTime;
@@ -150,7 +160,7 @@ public struct Path
     public Path(JumpTime jt)
     {
         points = new Vector3[15];
-        shouldWalk = new bool[points.Length];
+        walkToThisPoint = new bool[points.Length];
         shouldJump = true;
         jumpTime = jt;
         timeOffset = .25f;
@@ -180,9 +190,9 @@ public struct Path
     }
 }
 
-public enum JumpTime { EndOfPath = 0, WhenSetterRecievesBall = 1 }
+public enum JumpTime { EndOfPath = 0, BeforeSetterReceivesBall = 1, BeforeAttackerReceivesBall = 2 }
 public enum PassType { Person = 0, Location = 1 }
-public enum PassSpeed { Quick = 1, SemiFast = 4, Slow = 8};
+public enum PassSpeed { SuperQuick = 1, Quick = 2, SemiFast = 4, Slow = 8};
 public enum StrategyType { Offense = 0, Defense = 1 }
 [CreateAssetMenu(fileName = "New Strategy", menuName = "Strategy", order = 3)]
 public class Strategy : ScriptableObject {
@@ -242,12 +252,12 @@ public class Strategy : ScriptableObject {
     {
         int i = Random.Range(0, myPass[iteration].size - 1);
         if (i == exclude)
-            i = i < 0 ? i - 1 : i + 1;
+            i = i > 0 ? i - 1 : i + 1;
         if (myPass[iteration][i].type == PassType.Person)
         {
             int position = myPass[iteration][i].position <= numOfPlayers ? myPass[iteration][i].position : numOfPlayers;
             SpecialAction tempPlayer = player.Court.Players[player.currentSide].Find(x => x.currentPosition == position);
-            if(!player.Court.LocalRelate.IsValidPlayer(tempPlayer))
+            if(player == tempPlayer && myPass[iteration].size > 1)
             {
                 return CalcPassLocation(iteration, player, i);
             }
@@ -262,14 +272,14 @@ public class Strategy : ScriptableObject {
 
     Pass CalcPassLocation(int iteration, SpecialAction player, float dummy,int exclude = -1)
     {
-        int i = Random.Range(0, myPass[iteration].size - 1);
+        int i = Random.Range(0, myPass[iteration].size);
         if (i == exclude)
-            i = i < 0 ? i - 1 : i + 1;
+            i = i > 0 ? i - 1 : i + 1;
         if (myPass[iteration][i].type == PassType.Person)
         {
             int position = myPass[iteration][i].position <= numOfPlayers ? myPass[iteration][i].position : numOfPlayers;
             SpecialAction tempPlayer = player.Court.Players[player.currentSide].Find(x => x.currentPosition == position);
-            if (!player.Court.LocalRelate.IsValidPlayer(tempPlayer))
+            if (tempPlayer == player && myPass[iteration].size > 1)
             {
                 return CalcPassLocation(iteration, player, 0,i);
             }

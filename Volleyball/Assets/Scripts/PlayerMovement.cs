@@ -42,6 +42,7 @@ public class PlayerMovement : MonoBehaviour {
         isGrounded = CheckGround();
 
         //move the player
+        FixRotation();
         Movement();
     }
 
@@ -52,7 +53,38 @@ public class PlayerMovement : MonoBehaviour {
         //if it collides with something then there is ground
         //otherwise there is no ground
         Debug.DrawLine(ground.position, ground.position + Vector3.down * .3f);
-        return Physics.Raycast(new Ray(ground.position, Vector3.down), .4f);
+        RaycastHit hit;
+        bool grounded = Physics.Raycast(new Ray(ground.position, Vector3.down),out hit, .4f);
+        return grounded;
+    }
+
+    void FixRotation()
+    {
+        if (!relativeMovement)
+        {
+            if (!faceNet)
+            {
+                if (!followBall)
+                {
+                    transform.localRotation = Quaternion.Euler(Vector3.up * Mathf.Atan2(movementDirection.y, movementDirection.x));
+                }
+                else
+                {
+                    Vector3 ballVelocity = Vector3.ProjectOnPlane(myPass.vBall.rb.velocity, Vector3.up);
+                    Vector3 distance = transform.position - myPass.vBall.transform.position;
+                    float ballAngle = ballVelocity.x > Mathf.Epsilon || ballVelocity.z > Mathf.Epsilon ?
+                            Mathf.Atan2(ballVelocity.z, ballVelocity.x) * Mathf.Rad2Deg - 180 : (int)transform.eulerAngles.y;
+
+                    float diffAngle = Vector3.Angle(ballVelocity, distance) * Mathf.Sign(distance.z);
+                    float angle = ballVelocity.magnitude > Mathf.Epsilon ? ballAngle - diffAngle : ballAngle;
+                    transform.localRotation = Quaternion.Euler(Vector3.up * angle);
+                }
+            }
+            else
+            {
+                transform.localRotation = Quaternion.Euler(Vector3.up * (90 + 90 * (int)myPass.currentSide));
+            }
+        }
     }
 
     //Moves the player
@@ -72,33 +104,8 @@ public class PlayerMovement : MonoBehaviour {
 
             Vector3 desiredMove;
             desiredMove = relativeMovement ? movementDirection.x * transform.right + movementDirection.y * transform.forward : movementDirection.x * Vector3.right + movementDirection.y * Vector3.forward;
-            if (!relativeMovement && !faceNet)
-            {
-                if (!followBall)
-                {
-
-                    transform.localRotation = Quaternion.Euler(Vector3.up * Mathf.Atan2(desiredMove.y, desiredMove.x));
-                    Debug.DrawRay(transform.position, desiredMove);
-                }
-                else
-                {
-                    Vector3 ballVelocity = Vector3.ProjectOnPlane(myPass.vBall.rb.velocity, Vector3.up);
-                    Vector3 distance = transform.position - myPass.vBall.transform.position;
-                    float ballAngle = ballVelocity.x > Mathf.Epsilon || ballVelocity.z > Mathf.Epsilon ?
-                            Mathf.Atan2(ballVelocity.z, ballVelocity.x) * Mathf.Rad2Deg - 180 : (int)transform.eulerAngles.y;
-
-                    float diffAngle = Vector3.Angle(ballVelocity, distance) * Mathf.Sign(distance.z);
-                    float angle = ballVelocity.magnitude > Mathf.Epsilon ? ballAngle - diffAngle : ballAngle;
-                    transform.localRotation = Quaternion.Euler(Vector3.up * angle);
-                }
-            }
-            else
-            {
-                if (faceNet)
-                {
-                    transform.localRotation = Quaternion.Euler(Vector3.up * (90 + 90 * (int)myPass.currentSide));
-                }
-            }
+            
+            
             RaycastHit hitInfo;
             Physics.SphereCast(transform.position, myCollider.radius, Vector3.down, out hitInfo,
                                myCollider.height / 2f, Physics.AllLayers, QueryTriggerInteraction.Collide);

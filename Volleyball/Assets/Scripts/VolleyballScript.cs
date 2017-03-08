@@ -17,6 +17,7 @@ public class VolleyballScript : MonoBehaviour {
     [System.NonSerialized]
     public Rigidbody rb;
     SpecialAction previousPlayer;
+    SpecialAction LastPlayerHit;
     float samePlayerCount;
     float samePlayerCooldown = .1f;
     CourtScript court;
@@ -182,11 +183,18 @@ public class VolleyballScript : MonoBehaviour {
 
     public int GetSideTouches(Side side)
     {
-        if(previousPlayer.currentSide == side)
+        try
         {
-            return touches;
+            if (previousPlayer.currentSide == side)
+            {
+                return touches;
+            }
+            else
+            {
+                return 0;
+            }
         }
-        else
+        catch
         {
             return 0;
         }
@@ -221,7 +229,10 @@ public class VolleyballScript : MonoBehaviour {
             //if the player was on the same side as the last player then increase the 
             //amount of times that the side has touched the ball
             if (previousPlayer != null && currentPlayer.currentSide == previousPlayer.currentSide)
+            {
                 touches++;
+                court.SetMode(currentPlayer.currentSide);
+            }
             //if the player was on a different side then reset the amount of times that
             //the side has touched the ball
             else
@@ -241,6 +252,7 @@ public class VolleyballScript : MonoBehaviour {
 
         //current player is now the last player to hit the ball
         previousPlayer = currentPlayer;
+        LastPlayerHit = currentPlayer;
 
         //reset the same player cooldown
         samePlayerCount = 0;
@@ -334,7 +346,8 @@ public class VolleyballScript : MonoBehaviour {
         {
             //SpecialAction currentPlayer = CourtScript.FindPlayerFromCollision(other.transform);
             //if(currentPlayer != null)
-               // CollideWithPlayer(currentPlayer);
+            // CollideWithPlayer(currentPlayer);
+            LastPlayerHit = CourtScript.GetHighestParent(other.gameObject.transform).GetComponentInChildren<SpecialAction>();
             return;
         }
         //if the ball that was served hit the net the report a net serve
@@ -342,7 +355,7 @@ public class VolleyballScript : MonoBehaviour {
         {
             if(lastHitByServer)
             {
-                court.CourtRules.ReportNetServe(previousPlayer.currentSide);
+                court.CourtRules.ReportNetServe(LastPlayerHit.currentSide);
             }
         }
         //if ball hits anything else then its out of bounds
@@ -350,7 +363,7 @@ public class VolleyballScript : MonoBehaviour {
         {
             if (previousPlayer != null)
             {
-                court.CourtRules.ReportGroundedOut(rb.position, other.transform.tag != "Court", previousPlayer.currentSide);
+                court.CourtRules.ReportGroundedOut(rb.position, other.transform.tag != "Court", LastPlayerHit.currentSide);
             }
             currentAdditions = maxAdditions;
         }

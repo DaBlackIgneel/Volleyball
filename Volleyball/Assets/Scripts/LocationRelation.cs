@@ -15,7 +15,7 @@ public class LocationRelation : MonoBehaviour {
     public float TimeTillBallReachesLocation
     {
         get {
-            ballTime = Mathf.Abs((aimSpot.x - vBall.transform.position.x) / vBall.rb.velocity.x);
+            ballTime = (aimSpot.x - vBall.transform.position.x) / vBall.rb.velocity.x;
             return ballTime; }
     }
 
@@ -34,6 +34,8 @@ public class LocationRelation : MonoBehaviour {
         rand = new Random();
         aimingSection = court.dimensions.CourtSection(tempSide, tempSection);
         temp = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        temp.tag = "Court";
+        temp.layer = LayerMask.NameToLayer("Ground");
         ballHandler = new Dictionary<Side, SpecialAction>();
         StartCoroutine("UpdateClosestPlayerToBall");
     }
@@ -101,20 +103,49 @@ public class LocationRelation : MonoBehaviour {
         }
         catch
         {
-            return aimingSection.upperRightCorner - new Vector3(Random.Range(0, aimingSection.Dimension().x), -.2f, Random.Range(0, aimingSection.Dimension().z));
+            return AimSpot(player.currentSide);
         }
         
     }
+
+    public Vector3 AimSpot(Side currentSide)
+    {
+        CourtDimensions.Rectangle mySpot = court.dimensions.BackLineRect(currentSide);
+        aimSpot = mySpot.upperRightCorner - new Vector3(Random.Range(0, mySpot.Dimension().x), -.2f, Random.Range(0, mySpot.Dimension().z));
+        return aimSpot;
+    }
+
+    public Vector3 RandomSectionLocation(CourtDimensions.Rectangle mySpot)
+    {
+        return mySpot.upperRightCorner - new Vector3(Random.Range(0, mySpot.Dimension().x), -.2f, Random.Range(0, mySpot.Dimension().z));
+    }
+
+    public Vector3 RandomSectionLocation(Side currentSide, CourtDimensions.Section mySection)
+    {
+        CourtDimensions.Rectangle mySpot = court.dimensions.CourtSection(currentSide,mySection);
+        return mySpot.upperRightCorner - new Vector3(Random.Range(0, mySpot.Dimension().x), -.2f, Random.Range(0, mySpot.Dimension().z));
+    }
+
     public Pass AimSpotInfo(SpecialAction player)
     {
-        try
+        //try
         {
-            return court.currentStrategy[player.currentSide][StrategyType.Offense].GetPassInformation(player.vBall.GetSideTouches(player.currentSide), player);
+            if (player.vBall.GetSideTouches(player.currentSide) < 2)
+                return court.currentStrategy[player.currentSide][StrategyType.Offense].GetPassInformation(player.vBall.GetSideTouches(player.currentSide), player);
+            else
+            {
+                Pass temp = new Pass();
+                temp.position = CourtScript.MaxNumberOfPlayers + 1;
+                temp.speed = PassSpeed.Quick;
+                return temp;
+            }
         }
-        catch
+        /*catch (System.Exception e)
         {
+            print(e.Message);
             return new Pass(PassType.Location,aimingSection.upperRightCorner - new Vector3(Random.Range(0, aimingSection.Dimension().x), -.2f, Random.Range(0, aimingSection.Dimension().z)));
-        }
+            
+        }*/
 
     }
 

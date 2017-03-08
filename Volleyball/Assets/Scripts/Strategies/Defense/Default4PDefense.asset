@@ -15,46 +15,52 @@ MonoBehaviour:
   numOfPlayers: 4
   movementPath:
   - points: []
+    walkToThisPoint: 
     shouldJump: 0
     stopJump: 0
     jumpTime: 0
     timeOffset: 0
     size: 0
   - points: []
+    walkToThisPoint: 
     shouldJump: 0
     stopJump: 0
     jumpTime: 0
     timeOffset: 0
     size: 0
   - points: []
+    walkToThisPoint: 
     shouldJump: 0
     stopJump: 0
     jumpTime: 0
     timeOffset: 0
     size: 0
   - points: []
+    walkToThisPoint: 
     shouldJump: 0
     stopJump: 0
     jumpTime: 0
     timeOffset: 0
     size: 0
   - points: []
+    walkToThisPoint: 
     shouldJump: 0
     stopJump: 0
     jumpTime: 0
     timeOffset: 0
     size: 0
   - points: []
+    walkToThisPoint: 
     shouldJump: 0
     stopJump: 0
     jumpTime: 0
     timeOffset: 0
     size: 0
   defaultPositions:
-  - {x: 1.9999998, y: 1.1, z: 6.000001}
+  - {x: 1.9999998, y: 1.1, z: 6.0000014}
   - {x: 1.9999998, y: 1.1, z: 1.5000004}
   - {x: -1.9999998, y: 1.1, z: 1.5000004}
-  - {x: -1.9999998, y: 1.1, z: 6.000001}
+  - {x: -1.9999998, y: 1.1, z: 6.0000014}
   - {x: -0.33333334, y: 1.1, z: 0.6666667}
   - {x: -0.000000009934108, y: 1.1, z: 0.6666667}
   defensePassToLocation: {x: 0, y: 0.22222222, z: 0.33333334}

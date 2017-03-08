@@ -108,6 +108,12 @@ public class CourtScript : MonoBehaviour {
         get { return 6; }
     }
 
+    public float NetHeight
+    {
+        get { return net.transform.position.y + net.transform.localScale.y/2; }
+    }
+
+
     LocationRelation localRelate;
     float currentTime;
     float normalServeWaitTime = 5;
@@ -215,8 +221,8 @@ public class CourtScript : MonoBehaviour {
                 if (currentTime >= waitTime)
                 {
                     serve = true;
-                    BeginServe();
                     currentTime = waitTime + 101;
+                    BeginServe();
                 }
                 currentTime += Time.deltaTime;
             }
@@ -372,6 +378,19 @@ public class CourtScript : MonoBehaviour {
 
         //declare that your ready to serve
         readyToServe = true;
+
+        
+
+        if(onlyReceives)
+        {
+            mode[serveSide] = StrategyType.Defense;
+            mode[OppositeSide(serveSide)] = StrategyType.Defense;
+            serve = false;
+            readyToServe = false;
+            rallyOver = false;
+            currentTime = 0;
+            ball.transform.position = localRelate.RandomSectionLocation(serveSide, CourtDimensions.Section.BackMiddle) + Vector3.up * 20;//localRelate.AimSpot(serveSide) + Vector3.up * 20;
+        }
     }
 
     

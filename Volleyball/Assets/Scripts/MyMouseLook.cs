@@ -17,6 +17,16 @@ public class MyMouseLook : MonoBehaviour
     public bool InvertX;
     public bool InvertY;
 
+    public Vector3 XDirection
+    {
+        get { return xDirection; }
+    }
+
+    public Vector3 YDirection
+    {
+        get { return yDirection; }
+    }
+
     Vector3 xDirection;
     Vector3 yDirection;
 
@@ -34,6 +44,8 @@ public class MyMouseLook : MonoBehaviour
     float rotationX = 0F;
     float rotationY = 0F;
 
+    [System.NonSerialized]
+    public Quaternion OffsetRotation;
     Quaternion originalRotation;
     Quaternion myRotation;
     void Update()
@@ -77,7 +89,7 @@ public class MyMouseLook : MonoBehaviour
 
                 Quaternion xQuaternion = Quaternion.AngleAxis(rotationX, xDirection);
                 Quaternion yQuaternion = Quaternion.AngleAxis(rotationY, yDirection);
-                myRotation = Quaternion.Lerp(transform.localRotation, originalRotation * xQuaternion * yQuaternion,(smoothX + smoothY)/2);
+                myRotation = Quaternion.Lerp(transform.localRotation, originalRotation * xQuaternion * yQuaternion * OffsetRotation,(smoothX + smoothY)/2);
             }
             else if (axes == RotationAxes.MouseX)
             {
@@ -85,7 +97,7 @@ public class MyMouseLook : MonoBehaviour
                 rotationX = ClampAngle(rotationX, minimumX, maximumX);
 
                 Quaternion xQuaternion = Quaternion.AngleAxis(rotationX, xDirection);
-                myRotation = Quaternion.Lerp(transform.localRotation, originalRotation * xQuaternion, smoothX);
+                myRotation = Quaternion.Lerp(transform.localRotation, originalRotation * xQuaternion * OffsetRotation, smoothX);
             }
             else
             {
@@ -93,7 +105,7 @@ public class MyMouseLook : MonoBehaviour
                 rotationY = ClampAngle(rotationY, minimumY, maximumY);
 
                 Quaternion yQuaternion = Quaternion.AngleAxis(rotationY, yDirection);
-                myRotation = Quaternion.Lerp(transform.localRotation, originalRotation * yQuaternion, smoothY);
+                myRotation = Quaternion.Lerp(transform.localRotation, originalRotation * yQuaternion * OffsetRotation, smoothY);
                 
             }
         }
@@ -103,6 +115,8 @@ public class MyMouseLook : MonoBehaviour
     void Start()
     {
         originalRotation = transform.localRotation;
+        OffsetRotation = Quaternion.AngleAxis(0, xDirection);
+
     }
 
     public void Reset()

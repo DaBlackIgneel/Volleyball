@@ -36,7 +36,6 @@ public class ListListPassEditor : PropertyDrawer
         bool remove;
         bool add;
         EditorGUI.LabelField(position,label);
-        EditorGUILayout.BeginVertical();
         for (int i = 0; i < property.FindPropertyRelative("size").intValue; i++)
         {
             position = EditorGUILayout.BeginVertical();
@@ -60,11 +59,8 @@ public class ListListPassEditor : PropertyDrawer
                 i--;
             }
             EditorGUILayout.EndVertical();
-
         }
         EditorGUI.indentLevel = 1;
-
-        EditorGUILayout.EndVertical();
         EditorGUI.EndProperty();
     }
 }
@@ -167,6 +163,7 @@ public class PassEditor : PropertyDrawer
         if (property.FindPropertyRelative("type").enumValueIndex == 0)
         {
             EditorGUILayout.PropertyField(property.FindPropertyRelative("position"));
+            EditorGUILayout.PropertyField(property.FindPropertyRelative("offset"));
             if (property.FindPropertyRelative("position").intValue < 1)
                 property.FindPropertyRelative("position").intValue = 1;
             if (property.FindPropertyRelative("position").intValue > CourtScript.MaxNumberOfPlayers)
@@ -184,57 +181,68 @@ public class PassEditor : PropertyDrawer
 [CustomPropertyDrawer(typeof(Path))]
 public class PathEditor : PropertyDrawer
 {
-    Vector2[] path;
-    int index = 0;
-    int size;
+    Dictionary<string, Vector2[]> path;
+    //int index = 0;
+    //int size;
     bool delete;
-
+    Dictionary<string, int> index;
+    Dictionary<string, int> size;
+    string myLabel;
+    Texture fast;
+    Texture slow;
+    int arraySize;
+    Dictionary<string,Texture> image;
     public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
     {
+        myLabel = label.text;
+        InitializeVariables(property);
         EditorGUI.BeginProperty(position, label, property);
-        int arraySize = 15;
-        if (path == null || property.FindPropertyRelative("points").arraySize != arraySize)
-            InitializeArray(property.FindPropertyRelative("points"), arraySize);
         if (property.FindPropertyRelative("size").intValue > 0)
         {
             EditorGUI.indentLevel = 1;
-            if(size != property.FindPropertyRelative("size").intValue)
+            if(size[myLabel] != property.FindPropertyRelative("size").intValue)
             {
-                size = property.FindPropertyRelative("size").intValue;
-                index = size - 1;
+                size[myLabel] = property.FindPropertyRelative("size").intValue;
+                index[myLabel] = size[myLabel] - 1;
             }
     
             position = EditorGUI.PrefixLabel(position, label);
             position.position = new Vector2(15 + EditorGUI.indentLevel * 15,position.position.y);
             if (GUI.Button(new Rect(position.position - Vector2.right * 15 * EditorGUI.indentLevel, Vector2.one * 15), "-"))
             {
-                DeleteElement(property.FindPropertyRelative("points"), index);
+                DeleteElement(property.FindPropertyRelative("points"), index[myLabel]);
+                DeleteElement(property.FindPropertyRelative("walkToThisPoint"), index[myLabel]);
                 property.FindPropertyRelative("size").intValue--;
                 UpdatePathPoints(property.FindPropertyRelative("points"));
-                size = property.FindPropertyRelative("size").intValue;
-                if (size < 1)
+                size[myLabel] = property.FindPropertyRelative("size").intValue;
+                if (size[myLabel] < 1)
                     return;
             }
 
-            index = EditorGUILayout.IntField("Points Index", index+1)-1;
-            if (index >= property.FindPropertyRelative("size").intValue)
-                index = property.FindPropertyRelative("size").intValue - 1;
-            else if (index < 0)
-                index = 0;
-
+            index[myLabel] = EditorGUILayout.IntField("Points Index", index[myLabel] + 1)-1;
+            if (index[myLabel] >= property.FindPropertyRelative("size").intValue)
+                index[myLabel] = property.FindPropertyRelative("size").intValue - 1;
+            else if (index[myLabel] < 0)
+                index[myLabel] = 0;
+            position.position += Vector2.up * (15 * 2 + 5);
+            
+            EditorGUILayout.PropertyField(property.FindPropertyRelative("walkToThisPoint").GetArrayElementAtIndex(index[myLabel]));
+            image[myLabel] = property.FindPropertyRelative("walkToThisPoint").GetArrayElementAtIndex(index[myLabel]).boolValue ? fast : slow;
+            GUI.DrawTexture(new Rect(position.position,Vector2.Scale(position.size,new Vector2(.5f,1))), image[myLabel]);
+            position = EditorGUI.PrefixLabel(new Rect(position.position - Vector2.right * 15,position.size), new GUIContent("Walk To This Point"));
             EditorGUI.BeginChangeCheck();
-            path[index] = EditorGUILayout.Vector2Field("Path Point " + (index + 1).ToString(), path[index]);
-            if (Mathf.Abs(path[index].x) < 4.5f && path[index].y < .5f)
-                path[index].y = .5f;
+            path[myLabel][index[myLabel]] = EditorGUILayout.Vector2Field("Path Point " + (index[myLabel] + 1).ToString(), path[myLabel][index[myLabel]]);
+            if (Mathf.Abs(path[myLabel][index[myLabel]].x) < 4.5f && path[myLabel][index[myLabel]].y < .5f)
+                path[myLabel][index[myLabel]].y = .5f;
             if(EditorGUI.EndChangeCheck())
-                property.FindPropertyRelative("points").GetArrayElementAtIndex(index).vector3Value = V2toV3(path[index]);
+                property.FindPropertyRelative("points").GetArrayElementAtIndex(index[myLabel]).vector3Value = V2toV3(path[myLabel][index[myLabel]]);
 
             EditorGUILayout.PropertyField(property.FindPropertyRelative("shouldJump"));
             if (property.FindPropertyRelative("shouldJump").boolValue)
             {
                 EditorGUILayout.PropertyField(property.FindPropertyRelative("stopJump"));
                 EditorGUILayout.PropertyField(property.FindPropertyRelative("jumpTime"));
-                if(property.FindPropertyRelative("jumpTime").enumValueIndex == 1)
+                if(property.FindPropertyRelative("jumpTime").enumValueIndex >= 1)
                 {
                     EditorGUILayout.PropertyField(property.FindPropertyRelative("timeOffset"));
                 }
@@ -258,23 +266,56 @@ public class PathEditor : PropertyDrawer
 
     void DeleteElement(SerializedProperty array, int index)
     {
-        for(int i = index; i < size -1; i++)
-        {
+        for(int i = index; i < size[myLabel] - 1; i++)
             array.GetArrayElementAtIndex(i).vector3Value = array.GetArrayElementAtIndex(i + 1).vector3Value;
-        }
     }
 
     void UpdatePathPoints( SerializedProperty array)
     {
-        for(int i = 0; i < size; i++)
+        for(int i = 0; i < size[myLabel]; i++)
+            path[myLabel][i] = V3toV2(array.GetArrayElementAtIndex(i).vector3Value);
+    }
+
+    void InitializeVariables(SerializedProperty property)
+    {
+        arraySize = 15;
+        if (fast == null)
+            fast = (Texture)Resources.Load("p3Line");
+        if (slow == null)
+            slow = (Texture)Resources.Load("p4Line");
+        if (image == null)
+            image = new Dictionary<string, Texture>();
+        if (!image.ContainsKey(myLabel))
+            image.Add(myLabel, new Texture());
+        if (index == null)
         {
-            path[i] = V3toV2(array.GetArrayElementAtIndex(i).vector3Value);
+            index = new Dictionary<string, int>();
+            index.Add(myLabel, 0);
         }
+        if (!index.ContainsKey(myLabel))
+            index.Add(myLabel, 0);
+        if (size == null)
+        {
+            size = new Dictionary<string, int>();
+            size.Add(myLabel, 0);
+        }
+        if (!size.ContainsKey(myLabel))
+            size.Add(myLabel, 0);
+        if (path == null || !path.ContainsKey(myLabel) || property.FindPropertyRelative("points").arraySize != arraySize)
+            InitializeArray(property.FindPropertyRelative("points"), arraySize);
+        if (property.FindPropertyRelative("walkToThisPoint").arraySize != arraySize)
+            InitializeArray(property.FindPropertyRelative("walkToThisPoint"), arraySize);
     }
 
     void InitializeArray(SerializedProperty property, int size)
     {
-        path = new Vector2[size];
+        if (path == null)
+        {
+            path = new Dictionary<string, Vector2[]>();
+            path.Add(myLabel, new Vector2[size]);
+        }
+        if (!path.ContainsKey(myLabel))
+            path.Add(myLabel, new Vector2[size]);
 
         for (int i = property.arraySize; i < size; i++)
             property.InsertArrayElementAtIndex(i);
@@ -282,9 +323,7 @@ public class PathEditor : PropertyDrawer
             property.DeleteArrayElementAtIndex(i - 1);
 
         for(int i = 0; i < size; i ++)
-        {
-            path[i] = V3toV2(property.GetArrayElementAtIndex(i).vector3Value);
-        }
+            path[myLabel][i] = V3toV2(property.GetArrayElementAtIndex(i).vector3Value);
     }
 }
 
@@ -496,7 +535,7 @@ public class StrategyEditor : Editor {
                     string index = balls[i].propertyPath.Substring(balls[i].propertyPath.LastIndexOf("[") + 1).Remove(balls[i].propertyPath.Substring(balls[i].propertyPath.LastIndexOf("[") + 1).Length - 1);
                     int begging = balls[i].propertyPath.IndexOf("[");
                     string rootIndex = balls[i].propertyPath.Substring(begging+1, balls[i].propertyPath.IndexOf("]") - begging-1);
-                    
+                    int intRootIndex = System.Convert.ToInt32(rootIndex) + 1;
                     int mySize = balls[i].serializedObject.FindProperty(balls[i].propertyPath.Substring(0, balls[i].propertyPath.IndexOf(".", 10))).GetArrayElementAtIndex(System.Convert.ToInt32(rootIndex)).FindPropertyRelative("size").intValue;
                     if(System.Convert.ToInt32(index) >= mySize)
                     {
@@ -509,10 +548,17 @@ public class StrategyEditor : Editor {
                     {
                         try
                         {
-                            GUI.DrawTexture(new Rect(Vector2.Scale(players[balls[i].FindPropertyRelative("position").intValue - 1], size) + PlaceOnCourt(ballSize), ballSize), ballImage);
+                            Vector2 ballPosition = Vector2.Scale(players[balls[i].FindPropertyRelative("position").intValue - 1], size) + PlaceOnCourt(ballSize) + Vector2.Scale(V3toV2(balls[i].FindPropertyRelative("offset").vector3Value), size);
+                            GUI.DrawTexture(new Rect(ballPosition, ballSize), ballImage);
+                            GUIStyle me = new GUIStyle();
+                            me.normal.textColor = Color.white;
+                            GUIContent txt = new GUIContent((System.Convert.ToInt32(rootIndex) + 1).ToString(), "Passed to location");
+                            GUI.Label(new Rect(ballPosition + ballSize/4, ballSize), txt, me);
+                            
+                            //GUI.contentColor = old;
                             //MonoBehaviour.print(index + ", " + rootIndex + ",. "+ balls[i].serializedObject.FindProperty(balls[i].propertyPath.Substring(0, balls[i].propertyPath.IndexOf(".",10))).GetArrayElementAtIndex(System.Convert.ToInt32(rootIndex)).FindPropertyRelative("size").intValue);
                         }
-                        catch(System.Exception e)
+                        catch (System.Exception e)
                         {
                             MonoBehaviour.print("error " + balls[i].propertyPath.Substring(0, balls[i].propertyPath.IndexOf(".",10)));
                             MonoBehaviour.print(e.Message);
