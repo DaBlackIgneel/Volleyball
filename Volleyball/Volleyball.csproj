@@ -83,6 +83,7 @@
   <ItemGroup>
     <Compile Include="Assets\Scripts\CameraFollow.cs" />
     <Compile Include="Assets\Scripts\CourtScript.cs" />
+    <Compile Include="Assets\Scripts\GiveCollision.cs" />
     <Compile Include="Assets\Scripts\InGameUI.cs" />
     <Compile Include="Assets\Scripts\LocationRelation.cs" />
     <Compile Include="Assets\Scripts\MyMouseLook.cs" />

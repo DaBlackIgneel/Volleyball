@@ -191,6 +191,7 @@ public class SpecialAction : MonoBehaviour {
 
     Vector3 myLastVelocity;
     bool hittable;
+    bool hit;
 
     //computer variables
     bool decided;
@@ -217,11 +218,17 @@ public class SpecialAction : MonoBehaviour {
     float HEIGHT = 2f;
     float SQUAT_HEIGHT = 1f;
     float WALK_LENGTH = 2;
+    float jumpError = .1f;
+    float rotationAngle;
     bool stop;
     bool printing;
+    bool shootUp;
 
     int movementIndex;
     bool dontHit;
+    int hitMode = 0;
+    bool changeHitMode = true;
+    bool changeChangeHitMode = true;
 
     // Use this for initialization
     void Start () {
@@ -550,6 +557,7 @@ public class SpecialAction : MonoBehaviour {
     void OffensiveMovement()
     {
         Path myPath = LocationRelation.GetMovement(this);
+        movement.goToRotation = false;
         squat = false;
         block = false;
         dontHit = !goToBall;
@@ -581,29 +589,34 @@ public class SpecialAction : MonoBehaviour {
             {
                 float jumpHighestTime = Mathf.Abs(movement.jumpSpeed / Physics.gravity.y);
                 float myOffset = myPath.timeOffset > jumpHighestTime ? jumpHighestTime : myPath.timeOffset;
-                if (myPath.shouldJump && myPath.jumpTime == JumpTime.EndOfPath && movementIndex == myPath.size - 1 && Vector3.ProjectOnPlane(transform.position - movementLocation, Vector3.up).magnitude < .5f)
+                if (myPath.shouldJump)
                 {
-                    if (myPath.stopJump)
-                        movement.Stop();
-                    movement.jump = true;
-                }
-                else if (myPath.shouldJump && myPath.jumpTime == JumpTime.BeforeSetterReceivesBall && ((court.LocalRelate.TimeTillBallReachesLocation < myOffset && court.LocalRelate.TimeTillBallReachesLocation > -1f && vBall.GetSideTouches(currentSide) == 1) || vBall.GetSideTouches(currentSide) == 2))
-                {
-                    if (myPath.stopJump)
-                        movement.Stop();
-                    movement.jump = true;
-                }
-                else if (myPath.shouldJump && myPath.jumpTime == JumpTime.BeforeAttackerReceivesBall && court.LocalRelate.TimeTillBallReachesLocation < myOffset && vBall.GetSideTouches(currentSide) == 2)
-                {
-                    if (myPath.stopJump)
-                        movement.Stop();
-                    movement.jump = true;
+                    if (myPath.jumpTime == JumpTime.EndOfPath && movementIndex == myPath.size - 1 && Vector3.ProjectOnPlane(transform.position - movementLocation, Vector3.up).magnitude < .5f)
+                    {
+                        if (myPath.stopJump)
+                            Stop();
+                        movement.jump = true;
+                    }
+                    else if (court.LocalRelate.TimeTillBallReachesLocation < myOffset && court.LocalRelate.TimeTillBallReachesLocation > -1f)
+                    {
+                        if (myPath.jumpTime == JumpTime.BeforeSetterReceivesBall && vBall.GetSideTouches(currentSide) == 1)
+                        {
+                            if (myPath.stopJump)
+                                Stop();
+                            movement.jump = true;
+                        }
+                        else if (myPath.jumpTime == JumpTime.BeforeAttackerReceivesBall && vBall.GetSideTouches(currentSide) == 2)
+                        {
+                            if (myPath.stopJump)
+                                Stop();
+                            movement.jump = true;
+                        }
+                    }
                 }
             }
-
             if (movement.transform.position.y > .5f)
             {
-                movement.Stop();
+                Stop();
                 movement.jump = false;
             }
         }
@@ -615,13 +628,48 @@ public class SpecialAction : MonoBehaviour {
         if (ShouldMove())
             GetBall();
         else
-            ReturnToPosition();
+        {
+            SpecialAction personBallIsGoingTo = court.LocalRelate.personBallIsGoingTo;
+            if (personBallIsGoingTo != null)
+            {
+                movement.goToRotation = true;
+                if(vBall.GetSideTouches(CourtScript.OppositeSide(currentSide)) < 3)
+                    rotationAngle = (-Vector3.Angle(personBallIsGoingTo.transform.position, transform.position));
+                movement.transform.eulerAngles = Vector3.up * rotationAngle;
+                if (court.currentStrategy[currentSide][StrategyType.Defense].blocker[currentPosition - 1] && personBallIsGoingTo != null && vBall.GetSideTouches(CourtScript.OppositeSide(currentSide)) > 1)
+                {
+
+                    Vector3 followPlayer = vBall.transform.position;
+                    followPlayer.z = 0.5f * (float)currentSide;
+                    bool walking = Mathf.Abs(followPlayer.x - transform.position.x) < 5;
+                    movement.MoveTowards(followPlayer, walking);
+                    if (!personBallIsGoingTo.movement.isGrounded)
+                    {
+                        movement.MoveTowards(followPlayer, personBallIsGoingTo.movement.isWalking);
+                        movement.jump = true;
+                        block = true;
+                        //print("moving towards player");
+                    }
+                    if (!movement.isGrounded)
+                        movement.jump = false;
+                }
+                else
+                {
+                    ReturnToPosition();
+                }
+            }
+            else
+            {
+                movement.goToRotation = false;
+                ReturnToPosition();
+            }
+        }
     }
 
     bool ShouldMove()
     {
         Vector3 ballPos = court.LocalRelate.PredictBallLanding();
-        return (CourtScript.FloatToSide(ballPos.z) == currentSide || CourtScript.FloatToSide(vBall.transform.position.z) == currentSide )&& IsSupposedToGetBall();
+        return (CourtScript.FloatToSide(ballPos.z) == currentSide || CourtScript.FloatToSide(vBall.transform.position.z) == currentSide )&& IsSupposedToGetBall() && (court.LocalRelate.personBallIsGoingTo == null || court.LocalRelate.personBallIsGoingTo.currentSide == currentSide);
     }
 
     void ReturnToPosition()
@@ -641,16 +689,16 @@ public class SpecialAction : MonoBehaviour {
     {
         //PredictionPack pp = PredictBallPosition(HEIGHT);
         //float moveTime = PredictMovementTime(pp.position);
+        movement.goToRotation = false;
         movement.faceNet = false;
-        Vector3 landing = court.LocalRelate.MovePositionAtMaxHeight(MaxJumpHeight, movement);
+        Vector3 landing = court.LocalRelate.MovePositionAtMaxHeight(MaxJumpHeight - jumpError, movement);
         Vector3 ballDistance = vBall.transform.position - landing;
         if (landing.y > HEIGHT && !movement.jumping)
         {
-            float error = .1f;
             float time = (-vBall.rb.velocity.y - Mathf.Sqrt(Mathf.Pow(vBall.rb.velocity.y, 2) - 4 * Physics.gravity.y * ballDistance.y)) / (2 * Physics.gravity.y);
             float jumpDistance = time * movement.jumpSpeed + .5f * time * time * Physics.gravity.y + HEIGHT;
             float distanceToLanding = Vector3.Distance(vBall.rb.velocity * time + vBall.transform.position + Physics.gravity * time * time / 2, landing);
-            if (jumpDistance < landing.y + error && distanceToLanding < 2 && jumpDistance > landing.y)
+            if (jumpDistance < landing.y + jumpError && distanceToLanding < 2 && jumpDistance > landing.y)
                 movement.jump = true;
         }
 
@@ -658,7 +706,10 @@ public class SpecialAction : MonoBehaviour {
         distance = Vector3.ProjectOnPlane(distance, Vector3.up);
         bool shouldSquat = landing.y <= SQUAT_HEIGHT + .5f && vBall.transform.position.y < (1f - vBall.rb.velocity.y / 2f) && distance.magnitude < WALK_LENGTH * 3 / 2f && (!movement.jumping);
         bool shouldWalk = (distance - distance.y * Vector3.up).magnitude < WALK_LENGTH && (!movement.jumping);// && vBall.transform.position.y > 4;
-        movement.MoveTowards(landing, shouldWalk);
+        if (shouldWalk && movement.jump)
+            Stop();
+        else
+            movement.MoveTowards(landing, shouldWalk);
         squat = shouldSquat;
         if (!isPlayer)
         {
@@ -903,6 +954,8 @@ public class SpecialAction : MonoBehaviour {
                     
                 }
                 player.goToBall = true;
+                if (CourtScript.FloatToSide(aimSpot.z) != currentSide)
+                    aimSpot.z = 0.25f * (float)currentSide;
             }
             if (aimSpot.y < HEIGHT)
                 aimSpot.y = HEIGHT;
@@ -911,6 +964,10 @@ public class SpecialAction : MonoBehaviour {
         else
         {
             aimSpot = court.LocalRelate.AimSpot(CourtScript.OppositeSide(currentSide));
+
+
+            //SpecialAction player = court.Players[CourtScript.OppositeSide(currentSide)].Find(x => x.currentPosition == 1);
+            //aimSpot = Vector3.ProjectOnPlane(player.transform.position + player.movement.rb.velocity * time, Vector3.up) + (HEIGHT + player.movement.transform.position.y) * Vector3.up;// + aimSpotInfo.offset;
         }
 
         court.LocalRelate.aimSpot = aimSpot;
@@ -992,15 +1049,19 @@ public class SpecialAction : MonoBehaviour {
         arms.gameObject.SetActive(block);
         if (block)
         {
-            SetCameraMovement(false);
-            SetArmMovement(true);
+            if (isPlayer)
+            {
+                SetCameraMovement(false);
+                SetArmMovement(true);
+                armWaveRotation.x -= (Input.mouseScrollDelta.y) * armWaveSensitivity;
+            }
             blockOver = true;
-            armWaveRotation.x -= (Input.mouseScrollDelta.y) * armWaveSensitivity;
+            
             if (armWaveRotation.x > 15)
                 armWaveRotation.x = 15;
             if (armWaveRotation.x < -45)
                 armWaveRotation.x = -45;
-
+            hitCooldownTimer = 0;
             armWaveRotation.y = -armWaveRotation.x;
             leftArm.OffsetRotation = Quaternion.AngleAxis(armWaveRotation.x, leftArm.XDirection);
             rightArm.OffsetRotation = Quaternion.AngleAxis(armWaveRotation.y, rightArm.XDirection);
@@ -1010,8 +1071,11 @@ public class SpecialAction : MonoBehaviour {
         {
             if(blockOver)
             {
-                SetArmMovement(false);
-                SetCameraMovement(true);
+                if (isPlayer)
+                {
+                    SetArmMovement(false);
+                    SetCameraMovement(true);
+                }
                 blockOver = false;
                 leftArm.OffsetRotation = Quaternion.AngleAxis(0, leftArm.XDirection);
                 rightArm.OffsetRotation = Quaternion.AngleAxis(0, rightArm.XDirection);
@@ -1130,6 +1194,23 @@ public class SpecialAction : MonoBehaviour {
             block = (Input.GetAxisRaw("Block") != 0);
             squat = (Input.GetAxis("Squat") > 0.75f);
             stop = (Input.GetButtonDown("Cancel") || Input.GetButton("Cancel")) && !hitting;
+            hit = Input.GetButtonDown("Fire") || Input.GetButton("Fire");
+            if (hitting || hittable)
+            {
+                if ((Input.GetButtonDown("Fire") || Input.GetButton("Fire")) && changeHitMode)// && changeChangeHitMode)
+                {
+                    hitMode++;
+                    changeHitMode = false;
+                    //changeChangeHitMode = false;
+                }
+                if ((Input.GetButtonUp("Fire") || !Input.GetButton("Fire")) && !changeHitMode)// && !changeChangeHitMode)
+                {
+                    changeHitMode = true;
+                    //StartCoroutine("EnableChangeHitMode", true);
+                    //changeChangeHitMode = true;
+                }
+            }
+            shootUp = Input.GetMouseButton(2);
             //checks if your running
             movement.isWalking = Input.GetAxisRaw("Sprint") != 1;
             //checks if you want to jump
@@ -1139,6 +1220,14 @@ public class SpecialAction : MonoBehaviour {
             
     }
     #endregion
+
+    IEnumerator EnableChangeHitMode(bool value)
+    {
+        yield return new WaitForSeconds(0.1f);
+        changeHitMode = value;
+        yield return null;
+    }
+
 
     #region court methods
     //turns the movement of the player on or off
@@ -1178,6 +1267,15 @@ public class SpecialAction : MonoBehaviour {
     #endregion
 
     #region Shooting Ball
+    
+    void HitBallStraightUp()
+    {
+        originAimDir = Vector3.up;
+        power = MaxPower/3;
+        ballSpin = Vector3.up;
+        ComputerHit();
+    }
+    
     //allows the player to aim the ball, and after aiming
     void Aim()
     {
@@ -1185,7 +1283,7 @@ public class SpecialAction : MonoBehaviour {
         Cursor.visible = true;
         startingPosition = vBall.rb.position;
         //if you are not finished aiming than aim the ball
-        if (!aimed)
+        if (hitMode == 1)//!aimed)
         {
             //set the default direction (mainly used by the computer)
             Ray mousePoint = new Ray(Vector3.zero,Vector3.forward * ((float)currentSide) * -1 + Vector3.up);
@@ -1217,14 +1315,14 @@ public class SpecialAction : MonoBehaviour {
                 aimDir.y *= vBall.rb.mass;
             }
 
-            if(cancelAim && !Input.GetButton("Fire"))
+            if(cancelAim && !hit)
             {
                 cancelAim = false;
             }
 
             //if you have left clicked then begin power calculations 
             //if you are a computer go straight to the power calculations
-            if ((Input.GetButtonDown("Fire") || Input.GetButton("Fire"))&& !cancelAim || !isPlayer)
+            /*if ((Input.GetButtonDown("Fire") || Input.GetButton("Fire") hit hitMode == 2)&& !cancelAim || !isPlayer)
             {
                 if (isPlayer)
                     SetAimed(true);
@@ -1233,11 +1331,21 @@ public class SpecialAction : MonoBehaviour {
                 pastBallVelocity = vBall.rb.velocity;
                 vBall.ResetMotion();
                 originAimDir = aimDir;
-            }
+            }*/
         }
-
+        if ((hitMode == 2) && !cancelAim || !isPlayer)
+        {
+            if (isPlayer)
+                SetAimed(true);
+            else
+                aimed = true;
+            pastBallVelocity = vBall.rb.velocity;
+            vBall.ResetMotion();
+            originAimDir = aimDir;
+            hitMode = 3;
+        }
         //if you are finished aiming, then start the power calculations
-        if(aimed)
+        if (hitMode == 3)//aimed)
         {
             HitTheBall();
         }
@@ -1315,14 +1423,15 @@ public class SpecialAction : MonoBehaviour {
             SetAimed(false);
             vBall.rb.velocity = pastBallVelocity;
             cancelAim = true;
+            hitMode = 1;
             return;
         }
 
         //if you let go of the left click then return speed back to normal and hit the ball
-        if (Input.GetButtonUp("Fire") || !isPlayer || !Input.GetButton("Fire"))
+        if (!hit || !isPlayer)//Input.GetButtonUp("Fire") || !isPlayer || !Input.GetButton("Fire"))
         {
             ReturnSpeedToNormal();
-            shoot = true;
+            ShootBall();
         }
         
     }
@@ -1360,9 +1469,10 @@ public class SpecialAction : MonoBehaviour {
     //add force and spin to the ball
     void ShootBall()
     {
-        vBall.CollideWithPlayer(this);
+        
         vBall.rb.velocity = Vector3.zero;
         vBall.Shoot(aimDir * power,ballSpin, myParent);
+        vBall.CollideWithPlayer(this);
         rb.velocity = Vector3.zero;
         //if the court says that your ready to serve then tell them that you are currently
         //serving
@@ -1370,7 +1480,8 @@ public class SpecialAction : MonoBehaviour {
             court.readyToServe = false;
     }
 
-    void OnTriggerEnter(Collider other)
+    //void OnTriggerEnter(Collider other)
+    public void OnMyTriggerEnter(Collider other)
     {
         //if the player is colliding with the ball and it the hit cooldown is over, and the rally 
         //is still ongoing then hit the ball
@@ -1384,6 +1495,10 @@ public class SpecialAction : MonoBehaviour {
                 {
                     HitSetUp();
                     rb.velocity = Vector3.zero;
+                }
+                if(shootUp)
+                {
+                    HitBallStraightUp();
                 }
 
                 //makes it so that the player body doesn't rotate while your aiming
@@ -1455,6 +1570,7 @@ public class SpecialAction : MonoBehaviour {
 
         //starts the cooldown for hiting the ball
         hitTime = 0;
+        hitMode = 0;
         hitCooldownTimer = 0;
 
         //if the player is not a computer then enable movement
@@ -1520,33 +1636,6 @@ public class SpecialAction : MonoBehaviour {
             mySystem.Stop();
         }
     }
-    /*
-    Vector3 PredictBallLanding()
-    {
-        return PredictBallPosition(.1f).position;
-    }
-
-    PredictionPack PredictBallPosition(float targetHeight)
-    {
-        Vector3 landing;
-
-        float time = (-vBall.rb.velocity.y - Mathf.Sqrt(vBall.rb.velocity.y* vBall.rb.velocity.y - 4 * -9.8f * .5f * (vBall.transform.position.y - targetHeight)))/(-9.8f);
-        landing = vBall.rb.velocity * time + vBall.transform.position + 0.5f * Physics.gravity * time * time;
-        
-        
-        return new PredictionPack(time,landing);
-    }
-
-    float PredictMovementTime(Vector3 targetPosition)
-    {
-        float fallTime = (-movement.rb.velocity.y - Mathf.Sqrt(movement.rb.velocity.y * movement.rb.velocity.y - 4 * -9.8f * .5f * (movement.transform.position.y))) / (-9.8f);
-        Vector3 startPos = movement.transform.position + fallTime * movement.rb.velocity;
-        Vector3 distance = targetPosition - startPos;
-        distance.y = 0;
-        //direction.Normalize();
-        float time = distance.magnitude / movement.sprintSpeed + fallTime;
-        return time;
-    }*/
 
     //predicts where the ball will go
     void PredictShot()

@@ -15,52 +15,53 @@ MonoBehaviour:
   numOfPlayers: 6
   movementPath:
   - points: []
-    shouldWalk: 
+    walkToThisPoint: 
     shouldJump: 0
     stopJump: 0
     jumpTime: 0
     timeOffset: 0
     size: 0
   - points: []
-    shouldWalk: 
+    walkToThisPoint: 
     shouldJump: 0
     stopJump: 0
     jumpTime: 0
     timeOffset: 0
     size: 0
   - points: []
-    shouldWalk: 
+    walkToThisPoint: 
     shouldJump: 0
     stopJump: 0
     jumpTime: 0
     timeOffset: 0
     size: 0
   - points: []
-    shouldWalk: 
+    walkToThisPoint: 
     shouldJump: 0
     stopJump: 0
     jumpTime: 0
     timeOffset: 0
     size: 0
   - points: []
-    shouldWalk: 
+    walkToThisPoint: 
     shouldJump: 0
     stopJump: 0
     jumpTime: 0
     timeOffset: 0
     size: 0
   - points: []
-    shouldWalk: 
+    walkToThisPoint: 
     shouldJump: 0
     stopJump: 0
     jumpTime: 0
     timeOffset: 0
     size: 0
+  blocker: 000101010000
   defaultPositions:
   - {x: 2.9999998, y: 1.1, z: 6.0000014}
   - {x: 2.9999998, y: 1.1, z: 1.5000004}
   - {x: 0, y: 1.1, z: 1.5000004}
-  - {x: -2.9999998, y: 1.1, z: 1.5000004}
+  - {x: -3, y: 1.1, z: 1.5000004}
   - {x: -2.9999998, y: 1.1, z: 6.0000014}
   - {x: -0.000000009934108, y: 1.1, z: 6.0000014}
   defensePassToLocation: {x: 0, y: 0.22222222, z: 0.37777779}
@@ -75,104 +76,61 @@ MonoBehaviour:
         speed: 0
         position: 0
         location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
         visible: 0
       - type: 0
         speed: 0
         position: 0
         location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
         visible: 0
       - type: 0
         speed: 0
         position: 0
         location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
         visible: 0
       - type: 0
         speed: 0
         position: 0
         location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
         visible: 0
       - type: 0
         speed: 0
         position: 0
         location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
         visible: 0
       - type: 0
         speed: 0
         position: 0
         location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
         visible: 0
       - type: 0
         speed: 0
         position: 0
         location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
         visible: 0
       - type: 0
         speed: 0
         position: 0
         location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
         visible: 0
       - type: 0
         speed: 0
         position: 0
         location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
         visible: 0
       - type: 0
         speed: 0
         position: 0
         location: {x: 0, y: 0, z: 0}
-        visible: 0
-    - size: 0
-      capacity: 10
-      content:
-      - type: 0
-        speed: 0
-        position: 0
-        location: {x: 0, y: 0, z: 0}
-        visible: 0
-      - type: 0
-        speed: 0
-        position: 0
-        location: {x: 0, y: 0, z: 0}
-        visible: 0
-      - type: 0
-        speed: 0
-        position: 0
-        location: {x: 0, y: 0, z: 0}
-        visible: 0
-      - type: 0
-        speed: 0
-        position: 0
-        location: {x: 0, y: 0, z: 0}
-        visible: 0
-      - type: 0
-        speed: 0
-        position: 0
-        location: {x: 0, y: 0, z: 0}
-        visible: 0
-      - type: 0
-        speed: 0
-        position: 0
-        location: {x: 0, y: 0, z: 0}
-        visible: 0
-      - type: 0
-        speed: 0
-        position: 0
-        location: {x: 0, y: 0, z: 0}
-        visible: 0
-      - type: 0
-        speed: 0
-        position: 0
-        location: {x: 0, y: 0, z: 0}
-        visible: 0
-      - type: 0
-        speed: 0
-        position: 0
-        location: {x: 0, y: 0, z: 0}
-        visible: 0
-      - type: 0
-        speed: 0
-        position: 0
-        location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
         visible: 0
     - size: 0
       capacity: 10
@@ -181,104 +139,61 @@ MonoBehaviour:
         speed: 0
         position: 0
         location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
         visible: 0
       - type: 0
         speed: 0
         position: 0
         location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
         visible: 0
       - type: 0
         speed: 0
         position: 0
         location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
         visible: 0
       - type: 0
         speed: 0
         position: 0
         location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
         visible: 0
       - type: 0
         speed: 0
         position: 0
         location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
         visible: 0
       - type: 0
         speed: 0
         position: 0
         location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
         visible: 0
       - type: 0
         speed: 0
         position: 0
         location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
         visible: 0
       - type: 0
         speed: 0
         position: 0
         location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
         visible: 0
       - type: 0
         speed: 0
         position: 0
         location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
         visible: 0
       - type: 0
         speed: 0
         position: 0
         location: {x: 0, y: 0, z: 0}
-        visible: 0
-    - size: 0
-      capacity: 10
-      content:
-      - type: 0
-        speed: 0
-        position: 0
-        location: {x: 0, y: 0, z: 0}
-        visible: 0
-      - type: 0
-        speed: 0
-        position: 0
-        location: {x: 0, y: 0, z: 0}
-        visible: 0
-      - type: 0
-        speed: 0
-        position: 0
-        location: {x: 0, y: 0, z: 0}
-        visible: 0
-      - type: 0
-        speed: 0
-        position: 0
-        location: {x: 0, y: 0, z: 0}
-        visible: 0
-      - type: 0
-        speed: 0
-        position: 0
-        location: {x: 0, y: 0, z: 0}
-        visible: 0
-      - type: 0
-        speed: 0
-        position: 0
-        location: {x: 0, y: 0, z: 0}
-        visible: 0
-      - type: 0
-        speed: 0
-        position: 0
-        location: {x: 0, y: 0, z: 0}
-        visible: 0
-      - type: 0
-        speed: 0
-        position: 0
-        location: {x: 0, y: 0, z: 0}
-        visible: 0
-      - type: 0
-        speed: 0
-        position: 0
-        location: {x: 0, y: 0, z: 0}
-        visible: 0
-      - type: 0
-        speed: 0
-        position: 0
-        location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
         visible: 0
     - size: 0
       capacity: 10
@@ -287,104 +202,61 @@ MonoBehaviour:
         speed: 0
         position: 0
         location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
         visible: 0
       - type: 0
         speed: 0
         position: 0
         location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
         visible: 0
       - type: 0
         speed: 0
         position: 0
         location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
         visible: 0
       - type: 0
         speed: 0
         position: 0
         location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
         visible: 0
       - type: 0
         speed: 0
         position: 0
         location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
         visible: 0
       - type: 0
         speed: 0
         position: 0
         location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
         visible: 0
       - type: 0
         speed: 0
         position: 0
         location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
         visible: 0
       - type: 0
         speed: 0
         position: 0
         location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
         visible: 0
       - type: 0
         speed: 0
         position: 0
         location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
         visible: 0
       - type: 0
         speed: 0
         position: 0
         location: {x: 0, y: 0, z: 0}
-        visible: 0
-    - size: 0
-      capacity: 10
-      content:
-      - type: 0
-        speed: 0
-        position: 0
-        location: {x: 0, y: 0, z: 0}
-        visible: 0
-      - type: 0
-        speed: 0
-        position: 0
-        location: {x: 0, y: 0, z: 0}
-        visible: 0
-      - type: 0
-        speed: 0
-        position: 0
-        location: {x: 0, y: 0, z: 0}
-        visible: 0
-      - type: 0
-        speed: 0
-        position: 0
-        location: {x: 0, y: 0, z: 0}
-        visible: 0
-      - type: 0
-        speed: 0
-        position: 0
-        location: {x: 0, y: 0, z: 0}
-        visible: 0
-      - type: 0
-        speed: 0
-        position: 0
-        location: {x: 0, y: 0, z: 0}
-        visible: 0
-      - type: 0
-        speed: 0
-        position: 0
-        location: {x: 0, y: 0, z: 0}
-        visible: 0
-      - type: 0
-        speed: 0
-        position: 0
-        location: {x: 0, y: 0, z: 0}
-        visible: 0
-      - type: 0
-        speed: 0
-        position: 0
-        location: {x: 0, y: 0, z: 0}
-        visible: 0
-      - type: 0
-        speed: 0
-        position: 0
-        location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
         visible: 0
     - size: 0
       capacity: 10
@@ -393,104 +265,61 @@ MonoBehaviour:
         speed: 0
         position: 0
         location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
         visible: 0
       - type: 0
         speed: 0
         position: 0
         location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
         visible: 0
       - type: 0
         speed: 0
         position: 0
         location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
         visible: 0
       - type: 0
         speed: 0
         position: 0
         location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
         visible: 0
       - type: 0
         speed: 0
         position: 0
         location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
         visible: 0
       - type: 0
         speed: 0
         position: 0
         location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
         visible: 0
       - type: 0
         speed: 0
         position: 0
         location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
         visible: 0
       - type: 0
         speed: 0
         position: 0
         location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
         visible: 0
       - type: 0
         speed: 0
         position: 0
         location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
         visible: 0
       - type: 0
         speed: 0
         position: 0
         location: {x: 0, y: 0, z: 0}
-        visible: 0
-    - size: 0
-      capacity: 10
-      content:
-      - type: 0
-        speed: 0
-        position: 0
-        location: {x: 0, y: 0, z: 0}
-        visible: 0
-      - type: 0
-        speed: 0
-        position: 0
-        location: {x: 0, y: 0, z: 0}
-        visible: 0
-      - type: 0
-        speed: 0
-        position: 0
-        location: {x: 0, y: 0, z: 0}
-        visible: 0
-      - type: 0
-        speed: 0
-        position: 0
-        location: {x: 0, y: 0, z: 0}
-        visible: 0
-      - type: 0
-        speed: 0
-        position: 0
-        location: {x: 0, y: 0, z: 0}
-        visible: 0
-      - type: 0
-        speed: 0
-        position: 0
-        location: {x: 0, y: 0, z: 0}
-        visible: 0
-      - type: 0
-        speed: 0
-        position: 0
-        location: {x: 0, y: 0, z: 0}
-        visible: 0
-      - type: 0
-        speed: 0
-        position: 0
-        location: {x: 0, y: 0, z: 0}
-        visible: 0
-      - type: 0
-        speed: 0
-        position: 0
-        location: {x: 0, y: 0, z: 0}
-        visible: 0
-      - type: 0
-        speed: 0
-        position: 0
-        location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
         visible: 0
     - size: 0
       capacity: 10
@@ -499,51 +328,61 @@ MonoBehaviour:
         speed: 0
         position: 0
         location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
         visible: 0
       - type: 0
         speed: 0
         position: 0
         location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
         visible: 0
       - type: 0
         speed: 0
         position: 0
         location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
         visible: 0
       - type: 0
         speed: 0
         position: 0
         location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
         visible: 0
       - type: 0
         speed: 0
         position: 0
         location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
         visible: 0
       - type: 0
         speed: 0
         position: 0
         location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
         visible: 0
       - type: 0
         speed: 0
         position: 0
         location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
         visible: 0
       - type: 0
         speed: 0
         position: 0
         location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
         visible: 0
       - type: 0
         speed: 0
         position: 0
         location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
         visible: 0
       - type: 0
         speed: 0
         position: 0
         location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
         visible: 0
     - size: 0
       capacity: 10
@@ -552,50 +391,312 @@ MonoBehaviour:
         speed: 0
         position: 0
         location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
         visible: 0
       - type: 0
         speed: 0
         position: 0
         location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
         visible: 0
       - type: 0
         speed: 0
         position: 0
         location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
         visible: 0
       - type: 0
         speed: 0
         position: 0
         location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
         visible: 0
       - type: 0
         speed: 0
         position: 0
         location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
         visible: 0
       - type: 0
         speed: 0
         position: 0
         location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
         visible: 0
       - type: 0
         speed: 0
         position: 0
         location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
         visible: 0
       - type: 0
         speed: 0
         position: 0
         location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
         visible: 0
       - type: 0
         speed: 0
         position: 0
         location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
         visible: 0
       - type: 0
         speed: 0
         position: 0
         location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
+        visible: 0
+    - size: 0
+      capacity: 10
+      content:
+      - type: 0
+        speed: 0
+        position: 0
+        location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
+        visible: 0
+      - type: 0
+        speed: 0
+        position: 0
+        location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
+        visible: 0
+      - type: 0
+        speed: 0
+        position: 0
+        location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
+        visible: 0
+      - type: 0
+        speed: 0
+        position: 0
+        location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
+        visible: 0
+      - type: 0
+        speed: 0
+        position: 0
+        location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
+        visible: 0
+      - type: 0
+        speed: 0
+        position: 0
+        location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
+        visible: 0
+      - type: 0
+        speed: 0
+        position: 0
+        location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
+        visible: 0
+      - type: 0
+        speed: 0
+        position: 0
+        location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
+        visible: 0
+      - type: 0
+        speed: 0
+        position: 0
+        location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
+        visible: 0
+      - type: 0
+        speed: 0
+        position: 0
+        location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
+        visible: 0
+    - size: 0
+      capacity: 10
+      content:
+      - type: 0
+        speed: 0
+        position: 0
+        location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
+        visible: 0
+      - type: 0
+        speed: 0
+        position: 0
+        location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
+        visible: 0
+      - type: 0
+        speed: 0
+        position: 0
+        location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
+        visible: 0
+      - type: 0
+        speed: 0
+        position: 0
+        location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
+        visible: 0
+      - type: 0
+        speed: 0
+        position: 0
+        location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
+        visible: 0
+      - type: 0
+        speed: 0
+        position: 0
+        location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
+        visible: 0
+      - type: 0
+        speed: 0
+        position: 0
+        location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
+        visible: 0
+      - type: 0
+        speed: 0
+        position: 0
+        location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
+        visible: 0
+      - type: 0
+        speed: 0
+        position: 0
+        location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
+        visible: 0
+      - type: 0
+        speed: 0
+        position: 0
+        location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
+        visible: 0
+    - size: 0
+      capacity: 10
+      content:
+      - type: 0
+        speed: 0
+        position: 0
+        location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
+        visible: 0
+      - type: 0
+        speed: 0
+        position: 0
+        location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
+        visible: 0
+      - type: 0
+        speed: 0
+        position: 0
+        location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
+        visible: 0
+      - type: 0
+        speed: 0
+        position: 0
+        location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
+        visible: 0
+      - type: 0
+        speed: 0
+        position: 0
+        location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
+        visible: 0
+      - type: 0
+        speed: 0
+        position: 0
+        location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
+        visible: 0
+      - type: 0
+        speed: 0
+        position: 0
+        location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
+        visible: 0
+      - type: 0
+        speed: 0
+        position: 0
+        location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
+        visible: 0
+      - type: 0
+        speed: 0
+        position: 0
+        location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
+        visible: 0
+      - type: 0
+        speed: 0
+        position: 0
+        location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
+        visible: 0
+    - size: 0
+      capacity: 10
+      content:
+      - type: 0
+        speed: 0
+        position: 0
+        location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
+        visible: 0
+      - type: 0
+        speed: 0
+        position: 0
+        location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
+        visible: 0
+      - type: 0
+        speed: 0
+        position: 0
+        location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
+        visible: 0
+      - type: 0
+        speed: 0
+        position: 0
+        location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
+        visible: 0
+      - type: 0
+        speed: 0
+        position: 0
+        location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
+        visible: 0
+      - type: 0
+        speed: 0
+        position: 0
+        location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
+        visible: 0
+      - type: 0
+        speed: 0
+        position: 0
+        location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
+        visible: 0
+      - type: 0
+        speed: 0
+        position: 0
+        location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
+        visible: 0
+      - type: 0
+        speed: 0
+        position: 0
+        location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
+        visible: 0
+      - type: 0
+        speed: 0
+        position: 0
+        location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
         visible: 0
   change: 0

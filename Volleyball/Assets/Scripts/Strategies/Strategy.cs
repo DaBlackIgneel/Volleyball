@@ -200,7 +200,7 @@ public class Strategy : ScriptableObject {
     public StrategyType type;
     public int numOfPlayers;
     public Path[] movementPath;
-    
+    public bool[] blocker;
 
 
     [SerializeField]

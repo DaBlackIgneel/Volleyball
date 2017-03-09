@@ -21,6 +21,7 @@ public class VolleyballScript : MonoBehaviour {
     float samePlayerCount;
     float samePlayerCooldown = .1f;
     CourtScript court;
+    [SerializeField]
     int touches = 0;
     
     [SerializeField]
@@ -185,7 +186,7 @@ public class VolleyballScript : MonoBehaviour {
     {
         try
         {
-            if (previousPlayer.currentSide == side)
+            if (previousPlayer.currentSide == side && touches >= 0)
             {
                 return touches;
             }
@@ -235,9 +236,12 @@ public class VolleyballScript : MonoBehaviour {
             }
             //if the player was on a different side then reset the amount of times that
             //the side has touched the ball
-            else
+            else 
             {
-                touches = 1;
+                if (touches >= 0)
+                    touches = 1;
+                else
+                    touches = 0;
                 court.SetMode(currentPlayer.currentSide);
             }
             if(touches > Rules.maxNumberOfHits)
@@ -247,6 +251,8 @@ public class VolleyballScript : MonoBehaviour {
             if (lastHitByServer)
                 lastHitByServer = false;
         }
+        //StartCoroutine("FindPlayerBallGoingTo", currentPlayer);
+        //court.LocalRelate.FindWhoBallIsGoingTo(currentPlayer);
         //no more spin calculations
         currentAdditions = maxAdditions;
 
@@ -257,6 +263,8 @@ public class VolleyballScript : MonoBehaviour {
         //reset the same player cooldown
         samePlayerCount = 0;
     }
+
+    
 
     void UndoLastCollision()
     {
@@ -281,7 +289,9 @@ public class VolleyballScript : MonoBehaviour {
     public void Reset()
     {
         previousPlayer = null;
+        LastPlayerHit = null;
         ResetMotion();
+        touches = 0;
         samePlayerCount = 0;
         endServe = false;
 
@@ -337,17 +347,22 @@ public class VolleyballScript : MonoBehaviour {
 
     //on collision with anything reset the spin of the ball
     //collisions with the objects other than players
+
     void OnCollisionEnter(Collision other)
     {
-        
-
         //if currently colliding with the player then go through all the player collision checks
-        if (other.gameObject.layer == LayerMask.NameToLayer("Player"))
+        if (other.transform.tag == "PlayerArms" || other.transform.tag == "PlayerBody")
         {
             //SpecialAction currentPlayer = CourtScript.FindPlayerFromCollision(other.transform);
             //if(currentPlayer != null)
             // CollideWithPlayer(currentPlayer);
             LastPlayerHit = CourtScript.GetHighestParent(other.gameObject.transform).GetComponentInChildren<SpecialAction>();
+            if (LastPlayerHit.currentSide != previousPlayer.currentSide)
+            {
+                print("hello2");
+                touches = 0;
+                court.SetAllDefense();
+            }
             return;
         }
         //if the ball that was served hit the net the report a net serve
@@ -359,7 +374,7 @@ public class VolleyballScript : MonoBehaviour {
             }
         }
         //if ball hits anything else then its out of bounds
-        else if (!court.rallyOver)
+        else if (!court.rallyOver && other.gameObject.layer != LayerMask.NameToLayer("Player"))
         {
             if (previousPlayer != null)
             {

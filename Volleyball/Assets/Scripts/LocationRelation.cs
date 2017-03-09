@@ -7,6 +7,11 @@ public class LocationRelation : MonoBehaviour {
     public CourtDimensions.Section tempSection = CourtDimensions.Section.BackLeft;
     public Side tempSide = Side.Left;
     public Vector3 aimSpot;
+    public SpecialAction personBallIsGoingTo
+    {
+        get;
+        private set;
+    }
     public Dictionary<Side, SpecialAction> ClosestPlayerToBall
     {
         get { return ballHandler; }
@@ -25,7 +30,7 @@ public class LocationRelation : MonoBehaviour {
     CourtDimensions.Rectangle aimingSection;
     GameObject temp;
     Dictionary<Side, SpecialAction> ballHandler;
-
+    Side currentAttack;
     Random rand;
     // Use this for initialization
     void Start () {
@@ -38,6 +43,7 @@ public class LocationRelation : MonoBehaviour {
         temp.layer = LayerMask.NameToLayer("Ground");
         ballHandler = new Dictionary<Side, SpecialAction>();
         StartCoroutine("UpdateClosestPlayerToBall");
+        StartCoroutine("FindPlayerBallGoingTo");
     }
 	
 	// Update is called once per frame
@@ -58,31 +64,75 @@ public class LocationRelation : MonoBehaviour {
         
     }
 
-    public SpecialAction FindClosestPlayerToBall(Side tempSide)
+    IEnumerator FindPlayerBallGoingTo()
     {
-        foreach (SpecialAction p in court.Players[tempSide])
+        while (true)
         {
-            Vector3 distance = MovePositionAtMaxHeight(2, p.myMovement) - p.myMovement.transform.position;
-            p.distanceToBallLanding = distance;
-            try
+            yield return new WaitForSeconds(0.05f);
+            currentAttack = court.Mode[Side.Left] == StrategyType.Offense ? Side.Left : Side.Right;
+            personBallIsGoingTo = court.LocalRelate.FindWhoBallIsGoingTo(currentAttack);
+        }
+    }
+
+    public SpecialAction FindWhoBallIsGoingTo(Side Side)
+    {
+        Vector3 direction = Vector3.ProjectOnPlane(vBall.rb.velocity,Vector3.up);
+        
+        List<SpecialAction> prospectivePerson = court.Players[Side].FindAll(x => Mathf.Abs(Vector3.Angle(Vector3.ProjectOnPlane(x.transform.position - vBall.transform.position, Vector3.up), direction)) < 60);
+        prospectivePerson.Sort((x, y) => Mathf.Abs(Vector3.Angle(Vector3.ProjectOnPlane(x.transform.position - vBall.transform.position, Vector3.up), direction)).CompareTo(Mathf.Abs(Vector3.Angle(Vector3.ProjectOnPlane(y.transform.position - vBall.transform.position, Vector3.up), direction))));
+        for(int i = 0; i < prospectivePerson.Count; i++)
+        {
+            float angle = Mathf.Abs(Vector3.Angle(Vector3.ProjectOnPlane(prospectivePerson[i].transform.position - vBall.transform.position, Vector3.up), direction));
+            if (angle >  5 && Vector3.ProjectOnPlane(prospectivePerson[i].myMovement.rb.velocity, Vector3.up).magnitude < 2)
             {
-                if(ballHandler[tempSide].distanceToBallLanding.magnitude > p.distanceToBallLanding.magnitude && (IsValidPlayer(p)))
-                {
-                    ballHandler[tempSide] = p;
-                }
-            }
-            catch(System.NullReferenceException e)
-            {
-                ballHandler[tempSide] = p;
-                print(e.Message);
-            }
-            catch(KeyNotFoundException e)
-            {
-                ballHandler.Add(tempSide, p);
-                print(e.Message);
+                prospectivePerson.RemoveAt(i);
+                i--;
             }
         }
-        return ballHandler[tempSide];
+        
+        /*foreach(SpecialAction person in prospectivePerson)
+        {
+            //print(person.currentPosition + ", " + Vector3.Angle(Vector3.ProjectOnPlane(person.transform.position - vBall.transform.position, Vector3.up), direction));
+        }
+        print(direction);*/
+        //if(prospectivePerson.Count > 0)
+            //print(prospectivePerson[0].currentPosition + ", " + Vector3.Angle(Vector3.ProjectOnPlane(prospectivePerson[0].transform.position - vBall.transform.position, Vector3.up), direction));
+        if (prospectivePerson.Count > 0)
+            return prospectivePerson[0];
+        else
+            return null;
+    }
+
+    public SpecialAction FindClosestPlayerToBall(Side tempSide)
+    {
+        if (court.Players != null)
+        {
+            foreach (SpecialAction p in court.Players[tempSide])
+            {
+                Vector3 distance = MovePositionAtMaxHeight(2, p.myMovement) - p.myMovement.transform.position;
+                p.distanceToBallLanding = distance;
+                try
+                {
+                    if (ballHandler[tempSide].distanceToBallLanding.magnitude > p.distanceToBallLanding.magnitude && (IsValidPlayer(p)))
+                    {
+                        ballHandler[tempSide] = p;
+                    }
+                }
+                catch (System.NullReferenceException e)
+                {
+                    ballHandler[tempSide] = p;
+                    print(e.Message);
+                }
+                catch (KeyNotFoundException e)
+                {
+                    ballHandler.Add(tempSide, p);
+                    print(e.Message);
+                }
+            }
+            return ballHandler[tempSide];
+        }
+        else
+            return null;
     }
 
     IEnumerator UpdateClosestPlayerToBall()

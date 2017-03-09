@@ -338,8 +338,10 @@ public class StrategyEditor : Editor {
     SerializedProperty defensePassLocation;
     SerializedProperty pass;
     SerializedProperty path;
+    SerializedProperty block;
     List<SerializedProperty> balls;
     Texture courtImage;
+    Texture fenceImage;
     Texture ballImage;
     Texture[] Line;
     Vector2[] players;
@@ -355,6 +357,7 @@ public class StrategyEditor : Editor {
     Vector2 playerSize;
     Vector2 myPosition;
     Vector2 pointSize;
+    Vector2 fenceSize;
     float lineSize = 5;
     float y;
     bool initial = true;
@@ -372,6 +375,7 @@ public class StrategyEditor : Editor {
         defensePassLocation = serializedObject.FindProperty("defensePassToLocation");
         pass = serializedObject.FindProperty("myPass");
         path = serializedObject.FindProperty("movementPath");
+        block = serializedObject.FindProperty("blocker");
         InitializePlayers();
         InitializeCourt();
         buttonSize = Vector2.one * 20;
@@ -434,8 +438,10 @@ public class StrategyEditor : Editor {
         size = new Vector2(450, 450);
         ballSize = Vector2.one * 25;
         pointSize = Vector2.one * 12;
+        fenceSize = Vector2.one * 30;
         courtImage = (Texture)Resources.Load("court");
         ballImage = (Texture)Resources.Load("ball");
+        fenceImage = (Texture)Resources.Load("fence");
     }
 
     
@@ -485,7 +491,6 @@ public class StrategyEditor : Editor {
                         distance = myPosition- previousPosition;
                         angle = Mathf.Atan2(distance.y,distance.x) * Mathf.Rad2Deg;
                         GUIUtility.RotateAroundPivot(angle, previousPosition + lineSize/2 * Vector2.up);
-                        //GUI.DrawTextureWithTexCoords(new Rect(previousPosition, new Vector2(distance.magnitude, lineSize)), Line, new Rect(Vector2.zero, new Vector2(distance.magnitude/lineSize, 1)));
                         GUI.DrawTexture(new Rect(previousPosition, new Vector2(distance.magnitude, lineSize)), Line[i]);
                         GUIUtility.RotateAroundPivot(-angle, previousPosition + lineSize/2 * Vector2.up);
                         previousPosition = myPosition;
@@ -493,6 +498,23 @@ public class StrategyEditor : Editor {
                     }
                 }
 
+            }
+            else
+            {
+                if(block.arraySize != CourtScript.MaxNumberOfPlayers)
+                {
+                    for (int b = block.arraySize; b < CourtScript.MaxNumberOfPlayers; b++)
+                        block.InsertArrayElementAtIndex(b);
+                    for (int b = block.arraySize; b > CourtScript.MaxNumberOfPlayers; b--)
+                        block.DeleteArrayElementAtIndex(b - 1);
+                }
+                EditorGUI.indentLevel++;
+                EditorGUILayout.PropertyField(block.GetArrayElementAtIndex(i),new GUIContent("Block"));
+                EditorGUI.indentLevel--;
+                if (block.GetArrayElementAtIndex(i).boolValue)
+                {
+                    GUI.DrawTexture(new Rect(Vector2.Scale(players[i], size) + PlaceOnCourt(fenceSize), fenceSize), fenceImage);
+                }
             }
             if (oldPlayers[i] != players[i])
             {

@@ -52,11 +52,11 @@ MonoBehaviour:
     - {x: 2.99, y: 1.1, z: 1.5}
     - {x: 2.99, y: 1.1, z: 1.5}
     - {x: 2.99, y: 1.1, z: 1.5}
-    walkToThisPoint: 000000000000000000000000000000
+    walkToThisPoint: 000101010000000000000000000000
     shouldJump: 1
     stopJump: 0
-    jumpTime: 1
-    timeOffset: 0.2
+    jumpTime: 2
+    timeOffset: 0.5
     size: 4
   - points:
     - {x: 0, y: 1.1, z: 1.51}
@@ -146,6 +146,7 @@ MonoBehaviour:
     jumpTime: 0
     timeOffset: 0
     size: 0
+  blocker: 
   defaultPositions:
   - {x: 3, y: 1.1, z: 6}
   - {x: 3, y: 1.1, z: 1.5}
@@ -234,14 +235,14 @@ MonoBehaviour:
         offset: {x: 0, y: 0, z: 0}
         visible: 0
     - size: 1
-      capacity: 18
+      capacity: 20
       content:
       - type: 0
-        speed: 1
-        position: 4
-        location: {x: 0, y: 3.6, z: 1.51}
-        offset: {x: 0, y: 0, z: 0}
-        visible: 1
+        speed: 4
+        position: 2
+        location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 1.2, z: 0}
+        visible: 0
       - type: 0
         speed: 0
         position: 0

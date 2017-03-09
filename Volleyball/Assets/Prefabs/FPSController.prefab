@@ -21,7 +21,7 @@ GameObject:
   - component: {fileID: 4385657185462754}
   m_Layer: 11
   m_Name: Arms
-  m_TagString: Untagged
+  m_TagString: PlayerArms
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -39,7 +39,7 @@ GameObject:
   - component: {fileID: 23608216700517314}
   m_Layer: 11
   m_Name: Right Arm
-  m_TagString: Untagged
+  m_TagString: PlayerArms
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -57,7 +57,7 @@ GameObject:
   - component: {fileID: 23062780187187456}
   m_Layer: 11
   m_Name: Left Arm
-  m_TagString: Untagged
+  m_TagString: PlayerArms
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -118,6 +118,23 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 0
+--- !u!1 &1639353224553116
+GameObject:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  serializedVersion: 5
+  m_Component:
+  - component: {fileID: 4410621202675884}
+  - component: {fileID: 136051863354031852}
+  - component: {fileID: 114119851168996026}
+  m_Layer: 11
+  m_Name: HittingBox
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
 --- !u!1 &1696926548106810
 GameObject:
   m_ObjectHideFlags: 1
@@ -131,7 +148,7 @@ GameObject:
   - component: {fileID: 23913611736620448}
   m_Layer: 11
   m_Name: LeftHand
-  m_TagString: Untagged
+  m_TagString: PlayerArms
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -186,7 +203,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!1 &1843809145779182
 GameObject:
   m_ObjectHideFlags: 0
@@ -219,7 +236,7 @@ GameObject:
   - component: {fileID: 114018499563494716}
   m_Layer: 11
   m_Name: RightArmPivot
-  m_TagString: Untagged
+  m_TagString: PlayerArms
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -237,7 +254,7 @@ GameObject:
   - component: {fileID: 23617148829521322}
   m_Layer: 11
   m_Name: RightHand
-  m_TagString: Untagged
+  m_TagString: PlayerArms
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -253,7 +270,7 @@ GameObject:
   - component: {fileID: 114385170433692852}
   m_Layer: 11
   m_Name: LeftArmPivot
-  m_TagString: Untagged
+  m_TagString: PlayerArms
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -366,6 +383,19 @@ Transform:
   m_Father: {fileID: 4910744111464190}
   m_RootOrder: 2
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!4 &4410621202675884
+Transform:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1639353224553116}
+  m_LocalRotation: {x: 0.07219377, y: 0, z: 0, w: 0.9973907}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 4673438939939234}
+  m_RootOrder: 1
+  m_LocalEulerAnglesHint: {x: 8.28, y: 0, z: 0}
 --- !u!4 &4455924090707428
 Transform:
   m_ObjectHideFlags: 1
@@ -390,6 +420,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4045281868113404}
+  - {fileID: 4410621202675884}
   m_Father: {fileID: 4910744111464190}
   m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -426,7 +457,7 @@ Transform:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1843809145779182}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 1.3, y: 0, z: -6.77}
+  m_LocalPosition: {x: 1.3, y: 0, z: -3.62}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4015145354290960}
@@ -437,7 +468,7 @@ Transform:
   - {fileID: 4383896815954378}
   m_Father: {fileID: 0}
   m_RootOrder: 0
-  m_LocalEulerAnglesHint: {x: 0, y: 180, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!4 &4956166327339062
 Transform:
   m_ObjectHideFlags: 1
@@ -879,8 +910,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   look: 0
   axes: 0
-  sensitivityX: 5
-  sensitivityY: 5
+  sensitivityX: 0.5
+  sensitivityY: 0.5
   xAxisOfRotation: 2
   yAxisOfRotation: 0
   InvertX: 1
@@ -891,6 +922,18 @@ MonoBehaviour:
   maximumX: 45
   minimumY: -60
   maximumY: 20
+--- !u!114 &114119851168996026
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1639353224553116}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 512c99ae2ab49644198890e785159393, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  user: {fileID: 114225345423343298}
 --- !u!114 &114172269477192180
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -934,8 +977,9 @@ MonoBehaviour:
   isGrounded: 0
   isWalking: 0
   isStopped: 0
-  followBall: 0
+  followBall: 1
   faceNet: 0
+  goToRotation: 0
   ground: {fileID: 4383896815954378}
   relativeMovement: 1
 --- !u!114 &114225345423343298
@@ -951,15 +995,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   BallLandingIndicator: {fileID: 1643604688047644, guid: fd24239944a84a94b8d2ebb881ce4a7f,
     type: 2}
-  aimSpot: {x: 0, y: 0, z: 0}
+  aimSpot: {x: 5, y: 0, z: 5}
   tester1: 0.5
   tester2: 0.82
   tester3: 1
   yScale: 1
   MaxPower: 25
   minimumPower: 0.1
-  currentPosition: 1
-  isPlayer: 1
+  currentPosition: 2
+  isPlayer: 0
   currentSide: -1
   tau: 0.5
   divisionFactor: 100
@@ -972,6 +1016,7 @@ MonoBehaviour:
   maxSpin: 5
   aimingDetail: 0.604
   distanceToBallLanding: {x: 0, y: 0, z: 0}
+  armWaveSensitivity: 5
   squat: 0
   hitTime: 0
   ballSpin: {x: 0, y: 0}
@@ -1018,8 +1063,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   look: 0
   axes: 0
-  sensitivityX: 5
-  sensitivityY: 5
+  sensitivityX: 0.5
+  sensitivityY: 0.5
   xAxisOfRotation: 2
   yAxisOfRotation: 0
   InvertX: 1
@@ -1093,6 +1138,19 @@ SphereCollider:
   serializedVersion: 2
   m_Radius: 0.5
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!136 &136051863354031852
+CapsuleCollider:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1639353224553116}
+  m_Material: {fileID: 0}
+  m_IsTrigger: 1
+  m_Enabled: 1
+  m_Radius: 0.82
+  m_Height: 2.11
+  m_Direction: 1
+  m_Center: {x: 0, y: 1.22, z: 0.34}
 --- !u!136 &136437857052966698
 CapsuleCollider:
   m_ObjectHideFlags: 1

@@ -13,6 +13,8 @@ TagManager:
   - DisplayText
   - Score
   - Indicator
+  - PlayerArms
+  - PlayerBody
   layers:
   - Default
   - TransparentFX

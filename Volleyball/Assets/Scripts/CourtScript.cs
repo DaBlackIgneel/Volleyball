@@ -191,6 +191,7 @@ public class CourtScript : MonoBehaviour {
             if (!players.ContainsKey(tempPerson.currentSide))
             {
                 players.Add(tempPerson.currentSide, new List<SpecialAction>());
+                
             }
             players[tempPerson.currentSide].Add(tempPerson);
         }
@@ -441,7 +442,14 @@ public class CourtScript : MonoBehaviour {
         mode[OppositeSide(side)] = StrategyType.Defense;
         UpdateStrategyPositions();
     }
-    
+
+    public void SetAllDefense()
+    {
+        mode[Side.Left] = StrategyType.Defense;
+        mode[Side.Right] = StrategyType.Defense;
+        UpdateStrategyPositions();
+    }
+
     //given a side return the opposite side
     public static Side OppositeSide(Side currentSide)
     {

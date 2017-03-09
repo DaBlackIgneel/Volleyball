@@ -16,6 +16,7 @@ public class PlayerMovement : MonoBehaviour {
     public bool isStopped;
     public bool followBall;
     public bool faceNet;
+    public bool goToRotation;
     public Transform ground;
     public bool relativeMovement = true;
     [System.NonSerialized]
@@ -60,7 +61,7 @@ public class PlayerMovement : MonoBehaviour {
 
     void FixRotation()
     {
-        if (!relativeMovement)
+        if (!relativeMovement && !goToRotation)
         {
             if (!faceNet)
             {
