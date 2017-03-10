@@ -194,6 +194,8 @@ public enum JumpTime { EndOfPath = 0, BeforeSetterReceivesBall = 1, BeforeAttack
 public enum PassType { Person = 0, Location = 1 }
 public enum PassSpeed { SuperQuick = 1, Quick = 2, SemiFast = 4, Slow = 8};
 public enum StrategyType { Offense = 0, Defense = 1 }
+public enum DefensePosition { Blocker = 0, AngleDefender = 1, SeamDefender = 2 }
+public enum BlockingScheme { Shutout = 0, Funnel = 1  }
 [CreateAssetMenu(fileName = "New Strategy", menuName = "Strategy", order = 3)]
 public class Strategy : ScriptableObject {
 
@@ -201,7 +203,8 @@ public class Strategy : ScriptableObject {
     public int numOfPlayers;
     public Path[] movementPath;
     public bool[] blocker;
-
+    public DefensePosition[] myPosition;
+    public BlockingScheme blockingScheme;
 
     [SerializeField]
     private Vector3[] defaultPositions;

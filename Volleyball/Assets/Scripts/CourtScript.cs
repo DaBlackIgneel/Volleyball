@@ -68,6 +68,208 @@ public struct CourtDimensions
 }
 
 
+public class Team
+{
+    public List<SpecialAction> players;
+    public List<SpecialAction> blockers;
+    public Dictionary<int,Dictionary<StrategyType,List<Strategy>>> currentStrategies;
+    public StrategyType currentMode;
+    public Dictionary<StrategyType, int> strategyIndex;
+    public string name;
+    public int numberOfActivePlayers { get { return players.Count; } }
+    public Side side;
+    public Texture logo;
+
+    public Strategy CurrentStrategy
+    { get { return currentStrategies[numberOfActivePlayers][currentMode][strategyIndex[currentMode]]; } }
+
+    void DefaultConstructor()
+    {
+        players = new List<SpecialAction>();
+        blockers = new List<SpecialAction>();
+        currentStrategies = new Dictionary<int, Dictionary<StrategyType, List<Strategy>>>();
+        strategyIndex = new Dictionary<StrategyType, int>();
+        strategyIndex.Add(StrategyType.Offense, 0);
+        strategyIndex.Add(StrategyType.Defense, 0);
+        currentMode = StrategyType.Defense;
+        side = Side.Right;
+        name = "UnrivaledSuperHottie";
+    }
+
+    public Team()
+    {
+        DefaultConstructor();
+    }
+
+    public Team(string myName)
+    {
+        DefaultConstructor();
+        name = myName;
+    }
+
+    public Team(params SpecialAction[] p)
+    {
+        DefaultConstructor();
+        foreach (SpecialAction myP in p)
+        {
+            AddPlayer(myP);
+        }
+    }
+
+    public Team(List<SpecialAction> p)
+    {
+        DefaultConstructor();
+        foreach (SpecialAction myP in p)
+        {
+            AddPlayer(myP);
+        }
+    }
+
+    public void AddPlayer()
+    {
+        if (numberOfActivePlayers < CourtScript.MaxNumberOfPlayers)
+        {
+            SpecialAction sp = ((GameObject)GameObject.Instantiate(Resources.Load("Player"))).GetComponentInChildren<SpecialAction>();
+            sp.currentSide = side;
+            sp.currentPosition = numberOfActivePlayers + 1;
+            sp.isPlayer = false;
+            sp.team = this;
+            players.Add(sp);
+        }
+    }
+
+    public void AddPlayer(SpecialAction sp)
+    {
+        if (numberOfActivePlayers < CourtScript.MaxNumberOfPlayers)
+        {
+            sp.currentSide = side;
+            sp.currentPosition = numberOfActivePlayers + 1;
+            sp.team = this;
+            players.Add(sp);
+        }
+    }
+
+    public void AddBlocker(SpecialAction p)
+    {
+        if (!blockers.Contains(p))
+            blockers.Add(p);
+    }
+
+    public void AddStrategy(Strategy s)
+    {
+        if (!currentStrategies.ContainsKey(s.numOfPlayers))
+            currentStrategies.Add(s.numOfPlayers, new Dictionary<StrategyType, List<Strategy>>());
+        if (!currentStrategies[s.numOfPlayers].ContainsKey(s.type))
+            currentStrategies[s.numOfPlayers].Add(s.type, new List<Strategy>());
+        currentStrategies[s.numOfPlayers][s.type].Add(s);
+    }
+
+    public void AddStrategy(Strategy[] st)
+    {
+        foreach (Strategy s in st)
+        {
+            AddStrategy(s);
+        }
+    }
+
+    public Strategy GetStrategy(StrategyType st)
+    {
+        return currentStrategies[numberOfActivePlayers][st][0];
+    }
+
+    public Strategy GetStrategy(StrategyType st, int index)
+    {
+        return currentStrategies[numberOfActivePlayers][st][index];
+    }
+
+    public int NumberOfStrategies(StrategyType st)
+    {
+        return currentStrategies[numberOfActivePlayers][st].Count;
+    }
+
+    public void ResetTeamPositions(bool rotatePlayers)
+    {
+        if (rotatePlayers)
+            RotatePositions();
+        foreach (SpecialAction p in players)
+        {
+            p.ResetPosition();
+        }
+    }
+
+    public void EndRally()
+    {
+        foreach (SpecialAction p in players)
+        {
+            p.EndRally();
+        }
+    }
+
+    public void SwapPositions(int p1, int p2)
+    {
+        SpecialAction sp1 = players.Find(x => x.currentPosition == p1);
+        SpecialAction sp2 = players.Find(x => x.currentPosition == p2);
+        sp1.currentPosition = p2;
+        sp2.currentPosition = p1;
+    }
+
+    public void SwitchSide()
+    {
+        SetSide(CourtScript.OppositeSide(side));
+    }
+
+    public void SetSide(Side mySide)
+    {
+        foreach(SpecialAction p in players)
+        {
+            p.currentSide = mySide;
+        }
+        side = mySide;
+    }
+
+    public void SubstitutePlayer(SpecialAction sub, int pos)
+    {
+        SpecialAction temp = players[pos - 1];
+        sub = players[pos - 1];
+        sub.currentPosition = temp.currentPosition;
+        CourtScript.GetHighestParent(temp.transform).gameObject.SetActive(false);
+        if (!CourtScript.GetHighestParent(sub.transform).gameObject.activeInHierarchy)
+            CourtScript.GetHighestParent(sub.transform).gameObject.SetActive(true);
+    }
+
+    public Vector3 GetBlockSide(SpecialAction p, Vector3 goToLocation)
+    {
+        List<SpecialAction> sortedBlockers = blockers;
+        sortedBlockers.Sort((x, y) => (goToLocation.x - x.transform.position.x).CompareTo(goToLocation.x - y.transform.position.x));
+        int index = sortedBlockers.FindIndex(x=> x == p);
+        float offset;
+        
+        float playerSize = 1f;
+        if (sortedBlockers.Count % 2 == 1)
+            offset = ((float)index - Mathf.Floor(sortedBlockers.Count / 2f)) * playerSize;//.75 is the width of the player
+        else
+            offset = ((float)(index * 2f + 1) / (sortedBlockers.Count * 2f) - 1f / 2) * sortedBlockers.Count * playerSize;
+        //MonoBehaviour.print(p.currentPosition + ", " + index + ", " + offset + ", " + sortedBlockers.Count);
+        return Vector3.right * -offset;
+    }
+
+    void RotatePositions()
+    {
+        foreach(SpecialAction p in players)
+        {
+            p.currentPosition = (p.currentPosition + 1) % (numberOfActivePlayers);
+            if (p.currentPosition == 0)
+                p.currentPosition = 6;
+        }
+    }
+
+    public void SetMode(StrategyType mode)
+    {
+        currentMode = mode;
+        blockers.Clear();
+    }
+}
+
 
 public class CourtScript : MonoBehaviour {
     
@@ -131,6 +333,8 @@ public class CourtScript : MonoBehaviour {
     Dictionary<Side, StrategyType> mode;
     VolleyballScript ball;
     SpecialAction server;
+    public Team LeftTeam;
+    public Team RightTeam;
     
     UnityEngine.UI.Text[] scoreDisplay;
     Vector2 scoreIndex;
@@ -195,6 +399,11 @@ public class CourtScript : MonoBehaviour {
             }
             players[tempPerson.currentSide].Add(tempPerson);
         }
+        LeftTeam = new Team(players[Side.Left]);
+        LeftTeam.SetSide(Side.Left);
+        RightTeam = new Team(players[Side.Right]);
+        RightTeam.SetSide(Side.Right);
+        LeftTeam.SwapPositions(1, LeftTeam.numberOfActivePlayers);
         currentStrategy = new Dictionary<Side, Dictionary<StrategyType, Strategy>>();
         for (int i = -1; i < 2; i += 2)
         {
@@ -202,11 +411,20 @@ public class CourtScript : MonoBehaviour {
             currentStrategy.Add(tempSide, new Dictionary<StrategyType, Strategy>());
             currentStrategy[tempSide].Add(StrategyType.Defense, defaultDefenseStrategies[players[tempSide].Count - 1]);
             currentStrategy[tempSide].Add(StrategyType.Offense, defaultOffenseStrategies[players[tempSide].Count - 1]);
+            if (i == -1)
+            {
+                LeftTeam.AddStrategy(defaultDefenseStrategies);
+                LeftTeam.AddStrategy(defaultOffenseStrategies);
+                RightTeam.AddStrategy(defaultDefenseStrategies);
+                RightTeam.AddStrategy(defaultOffenseStrategies);
+            }
         }
 
         mode = new Dictionary<Side, StrategyType>();
-        mode.Add(Side.Left, StrategyType.Offense);
+        mode.Add(Side.Left, StrategyType.Defense);
         mode.Add(Side.Right, StrategyType.Defense);
+
+        
     }
 	
 	// Update is called once per frame
@@ -257,22 +475,20 @@ public class CourtScript : MonoBehaviour {
 
     void UpdateStrategyPositions()
     {
-        for(int i = -1; i < 2; i += 2)
+        try
         {
-            Side tempSide = (Side)i;
-            try
+            for (int p = 0; p < RightTeam.numberOfActivePlayers; p++)
             {
-                Strategy myStrategy = currentStrategy[tempSide][mode[tempSide]];
-                for (int p = 0; p < myStrategy.numOfPlayers; p++)
-                {
-                    GetCourtPosition(p + 1, tempSide).position = Vector3.Scale(myStrategy.DefaultPositions(p),new Vector3((int)(tempSide), 1, (int)(tempSide)));
-                }
+                GetCourtPosition(p + 1, RightTeam.side).position = Vector3.Scale(RightTeam.CurrentStrategy.DefaultPositions(p),new Vector3((int)(RightTeam.side), 1, (int)(RightTeam.side)));
             }
-            catch(System.Exception e)
+            for (int p = 0; p < LeftTeam.numberOfActivePlayers; p++)
             {
-                print("You need to make the offense strategy");
-                print(e.Message);
+                GetCourtPosition(p + 1, LeftTeam.side).position = Vector3.Scale(LeftTeam.CurrentStrategy.DefaultPositions(p), new Vector3((int)(LeftTeam.side), 1, (int)(LeftTeam.side)));
             }
+        }
+        catch(System.Exception e)
+        {
+            print(e.Message);
         }
         
     }
@@ -347,14 +563,8 @@ public class CourtScript : MonoBehaviour {
         rallyOver = true;
 
         //goes through each player and stops their movement and their special actions
-        for (int s = -1; s < 2; s += 2)
-        {
-            Side tempSide = (Side)s;
-            for (int i = 0; i < players[tempSide].Count; i++)
-            {
-                players[tempSide][i].EndRally();
-            }
-        }
+        LeftTeam.EndRally();
+        RightTeam.EndRally();
     }
 
 
@@ -362,16 +572,8 @@ public class CourtScript : MonoBehaviour {
     void BeginServe()
     {
         //go through each player and allow special actions and move them to their starting positions
-        for (int s = -1; s < 2; s += 2)
-        {
-            Side tempSide = (Side)s;
-            for (int i = 0; i < players[tempSide].Count; i++)
-            {
-                players[tempSide][i].enabled = true;
-                //players[i].resetPosition = true;
-                players[tempSide][i].ResetPosition();
-            }
-        }
+        LeftTeam.ResetTeamPositions(false);
+        RightTeam.ResetTeamPositions(false);
 
         //move the ball off to the side
         ball.transform.position = new Vector3(12, 0, 0);
@@ -384,8 +586,7 @@ public class CourtScript : MonoBehaviour {
 
         if(onlyReceives)
         {
-            mode[serveSide] = StrategyType.Defense;
-            mode[OppositeSide(serveSide)] = StrategyType.Defense;
+            SetAllDefense();
             serve = false;
             readyToServe = false;
             rallyOver = false;
@@ -440,6 +641,15 @@ public class CourtScript : MonoBehaviour {
     {
         mode[side] = StrategyType.Offense;
         mode[OppositeSide(side)] = StrategyType.Defense;
+        if (LeftTeam.side == side)
+            LeftTeam.SetMode(StrategyType.Offense);
+        else
+            LeftTeam.SetMode(StrategyType.Defense);
+        if (RightTeam.side == side)
+            RightTeam.SetMode(StrategyType.Offense);
+        else
+            RightTeam.SetMode(StrategyType.Defense);
+
         UpdateStrategyPositions();
     }
 
@@ -447,6 +657,8 @@ public class CourtScript : MonoBehaviour {
     {
         mode[Side.Left] = StrategyType.Defense;
         mode[Side.Right] = StrategyType.Defense;
+        LeftTeam.SetMode(StrategyType.Defense);
+        RightTeam.SetMode(StrategyType.Defense);
         UpdateStrategyPositions();
     }
 

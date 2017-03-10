@@ -56,7 +56,7 @@ public class PlayerMovement : MonoBehaviour {
         Debug.DrawLine(ground.position, ground.position + Vector3.down * .3f);
         RaycastHit hit;
         bool grounded = Physics.Raycast(new Ray(ground.position, Vector3.down),out hit, .4f);
-        return grounded;
+        return hit.collider != null && hit.collider.gameObject.layer == LayerMask.NameToLayer("Ground");
     }
 
     void FixRotation()
@@ -83,7 +83,7 @@ public class PlayerMovement : MonoBehaviour {
             }
             else
             {
-                transform.localRotation = Quaternion.Euler(Vector3.up * (90 + 90 * (int)myPass.currentSide));
+                transform.eulerAngles = Vector3.up * (90 + 90 * (int)myPass.currentSide);
             }
         }
     }

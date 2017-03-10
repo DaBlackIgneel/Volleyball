@@ -7,7 +7,7 @@ public class LocationRelation : MonoBehaviour {
     public CourtDimensions.Section tempSection = CourtDimensions.Section.BackLeft;
     public Side tempSide = Side.Left;
     public Vector3 aimSpot;
-    public SpecialAction personBallIsGoingTo
+    public BallToPlayer personBallIsGoingTo
     {
         get;
         private set;
@@ -23,6 +23,19 @@ public class LocationRelation : MonoBehaviour {
             ballTime = (aimSpot.x - vBall.transform.position.x) / vBall.rb.velocity.x;
             return ballTime; }
     }
+
+    public class BallToPlayer
+    {
+        public SpecialAction player;
+        public float angle;
+
+        public BallToPlayer(SpecialAction p, float a)
+        {
+            player = p;
+            angle = a;
+        }
+    }
+
 
     float ballTime;
     CourtScript court;
@@ -42,6 +55,8 @@ public class LocationRelation : MonoBehaviour {
         temp.tag = "Court";
         temp.layer = LayerMask.NameToLayer("Ground");
         ballHandler = new Dictionary<Side, SpecialAction>();
+        ballHandler.Add(Side.Left, null);
+        ballHandler.Add(Side.Right, null);
         StartCoroutine("UpdateClosestPlayerToBall");
         StartCoroutine("FindPlayerBallGoingTo");
     }
@@ -69,15 +84,15 @@ public class LocationRelation : MonoBehaviour {
         while (true)
         {
             yield return new WaitForSeconds(0.05f);
-            currentAttack = court.Mode[Side.Left] == StrategyType.Offense ? Side.Left : Side.Right;
-            personBallIsGoingTo = court.LocalRelate.FindWhoBallIsGoingTo(currentAttack);
+            currentAttack = court.LeftTeam.currentMode == StrategyType.Offense ? Side.Left : Side.Right;
+            court.LocalRelate.FindWhoBallIsGoingTo(currentAttack);
         }
     }
 
     public SpecialAction FindWhoBallIsGoingTo(Side Side)
     {
         Vector3 direction = Vector3.ProjectOnPlane(vBall.rb.velocity,Vector3.up);
-        
+        personBallIsGoingTo = null;
         List<SpecialAction> prospectivePerson = court.Players[Side].FindAll(x => Mathf.Abs(Vector3.Angle(Vector3.ProjectOnPlane(x.transform.position - vBall.transform.position, Vector3.up), direction)) < 60);
         prospectivePerson.Sort((x, y) => Mathf.Abs(Vector3.Angle(Vector3.ProjectOnPlane(x.transform.position - vBall.transform.position, Vector3.up), direction)).CompareTo(Mathf.Abs(Vector3.Angle(Vector3.ProjectOnPlane(y.transform.position - vBall.transform.position, Vector3.up), direction))));
         for(int i = 0; i < prospectivePerson.Count; i++)
@@ -87,6 +102,13 @@ public class LocationRelation : MonoBehaviour {
             {
                 prospectivePerson.RemoveAt(i);
                 i--;
+            }
+            else
+            {
+                if(personBallIsGoingTo == null)
+                {
+                    personBallIsGoingTo = new BallToPlayer(prospectivePerson[i], angle);
+                }
             }
         }
         
@@ -113,7 +135,14 @@ public class LocationRelation : MonoBehaviour {
                 p.distanceToBallLanding = distance;
                 try
                 {
-                    if (ballHandler[tempSide].distanceToBallLanding.magnitude > p.distanceToBallLanding.magnitude && (IsValidPlayer(p)))
+                    if (ballHandler[tempSide] != null)
+                    {
+                        if (ballHandler[tempSide].distanceToBallLanding.magnitude > p.distanceToBallLanding.magnitude && (IsValidPlayer(p)))
+                        {
+                            ballHandler[tempSide] = p;
+                        }
+                    }
+                    else
                     {
                         ballHandler[tempSide] = p;
                     }
@@ -129,6 +158,7 @@ public class LocationRelation : MonoBehaviour {
                     print(e.Message);
                 }
             }
+            //print(ballHandler[tempSide].currentPosition);
             return ballHandler[tempSide];
         }
         else

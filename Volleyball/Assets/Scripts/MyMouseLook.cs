@@ -158,4 +158,38 @@ public class MyMouseLook : MonoBehaviour
             angle -= 360F;
         return Mathf.Clamp(angle, min, max);
     }
+
+    public void SetRotation(RotationAxes myAxis, float angle, float angle2 = 0)
+    {
+        if (axes == RotationAxes.MouseXAndY)
+        {
+            // Read the mouse input axis
+            rotationX = angle;
+            rotationY = angle2;
+
+            rotationX = ClampAngle(rotationX, minimumX, maximumX);
+            rotationY = ClampAngle(rotationY, minimumY, maximumY);
+
+            Quaternion xQuaternion = Quaternion.AngleAxis(rotationX, xDirection);
+            Quaternion yQuaternion = Quaternion.AngleAxis(rotationY, yDirection);
+            myRotation =  originalRotation * xQuaternion * yQuaternion * OffsetRotation;
+        }
+        else if (axes == RotationAxes.MouseX)
+        {
+            rotationX = angle;
+            rotationX = ClampAngle(rotationX, minimumX, maximumX);
+
+            Quaternion xQuaternion = Quaternion.AngleAxis(rotationX, xDirection);
+            myRotation = originalRotation * xQuaternion * OffsetRotation;
+        }
+        else
+        {
+            rotationY = angle;
+            rotationY = ClampAngle(rotationY, minimumY, maximumY);
+
+            Quaternion yQuaternion = Quaternion.AngleAxis(rotationY, yDirection);
+            myRotation = originalRotation * yQuaternion * OffsetRotation;
+
+        }
+    }
 }

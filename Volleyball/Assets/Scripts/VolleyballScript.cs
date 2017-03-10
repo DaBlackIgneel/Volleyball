@@ -88,7 +88,7 @@ public class VolleyballScript : MonoBehaviour {
     void FixedUpdate()
     {
         //Adds the affect of spin onto the velocity of the ball
-        AddSpin();
+        //AddSpin();
 
         //continue to change the air density map for the jump floater
         if(currentAdditions >= maxAdditions)
@@ -157,6 +157,7 @@ public class VolleyballScript : MonoBehaviour {
             //add the spin vector to the current velocity
             //rb.velocity += spinAddition.y * Vector3.up + spinAddition.x * right;
             rb.AddForce((spinAddition.y * Vector3.up + spinAddition.x * right) * rb.mass, ForceMode.Impulse);
+            print(rb.velocity + ", " + transform.position + ", " + Time.fixedDeltaTime);
             currentAdditions++;
         }
     }
@@ -172,12 +173,12 @@ public class VolleyballScript : MonoBehaviour {
             mySpin--;
             mySpin *= spinAddConst;
             mySpin++;
-            return (mySpin-1) / 100f;
+            return (mySpin - 1);// / 100f;
         }
         else
         {
             mySpin *= spinAddConst;
-            return mySpin / 100f;
+            return mySpin;// / 100f;
         }
         
     }
@@ -254,7 +255,7 @@ public class VolleyballScript : MonoBehaviour {
         //StartCoroutine("FindPlayerBallGoingTo", currentPlayer);
         //court.LocalRelate.FindWhoBallIsGoingTo(currentPlayer);
         //no more spin calculations
-        currentAdditions = maxAdditions;
+        //currentAdditions = maxAdditions;
 
         //current player is now the last player to hit the ball
         previousPlayer = currentPlayer;
@@ -357,7 +358,7 @@ public class VolleyballScript : MonoBehaviour {
             //if(currentPlayer != null)
             // CollideWithPlayer(currentPlayer);
             LastPlayerHit = CourtScript.GetHighestParent(other.gameObject.transform).GetComponentInChildren<SpecialAction>();
-            if (LastPlayerHit.currentSide != previousPlayer.currentSide)
+            if (LastPlayerHit != null && previousPlayer != null  && LastPlayerHit.currentSide != previousPlayer.currentSide)
             {
                 print("hello2");
                 touches = 0;

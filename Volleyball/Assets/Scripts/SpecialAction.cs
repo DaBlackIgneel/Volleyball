@@ -53,6 +53,7 @@ public class SpecialAction : MonoBehaviour {
     public float squatSpeed;
     public float lobAgjust = 1f;
     public float maxSpin = 5;
+    public Team team;
 
     [Range(0.2f,1)]
     public float aimingDetail = .5f;
@@ -109,7 +110,7 @@ public class SpecialAction : MonoBehaviour {
     MyMouseLook m_MouseLook;
     Transform myParent;
 
-    bool block;
+    public bool block;
     bool blockOver;
     public bool squat;
     bool dive;
@@ -223,6 +224,8 @@ public class SpecialAction : MonoBehaviour {
     bool stop;
     bool printing;
     bool shootUp;
+    float downArm = 0;
+    float blockArmRotation;
 
     int movementIndex;
     bool dontHit;
@@ -385,8 +388,7 @@ public class SpecialAction : MonoBehaviour {
                 //checks to see if player is in contact with ball
                 CheckHit();
 
-            //allow yourself to start blocking
-            Block();
+            
             
         }
 
@@ -406,6 +408,8 @@ public class SpecialAction : MonoBehaviour {
 
         //if your squatted then unsquat yourself
         Squat();
+        //allow yourself to start blocking
+        Block();
     }
 
     void Movement()
@@ -533,7 +537,7 @@ public class SpecialAction : MonoBehaviour {
         }*/
         if((court.serve && !court.readyToServe && court.serveSide != currentSide) || !court.serve)
         {
-            if (court.currentStrategy[currentSide][court.Mode[currentSide]].type == StrategyType.Defense)
+            if (team.currentMode == StrategyType.Defense)
             {
                 movementIndex = 0;
                 dontHit = false;
@@ -559,7 +563,11 @@ public class SpecialAction : MonoBehaviour {
         Path myPath = LocationRelation.GetMovement(this);
         movement.goToRotation = false;
         squat = false;
-        block = false;
+
+        if (movement.isGrounded)
+            block = false;
+        else
+            movement.jump = false;
         dontHit = !goToBall;
         if (myPath.size == 0)
         {
@@ -625,29 +633,70 @@ public class SpecialAction : MonoBehaviour {
     void DefensiveMovement()
     {
         goToBall = false;
-        if (ShouldMove())
+        bool shouldBlock = team.GetStrategy(StrategyType.Defense).myPosition[currentPosition - 1] == DefensePosition.Blocker;
+        if (ShouldMove() && movement.isGrounded)
             GetBall();
         else
         {
-            SpecialAction personBallIsGoingTo = court.LocalRelate.personBallIsGoingTo;
-            if (personBallIsGoingTo != null)
+            LocationRelation.BallToPlayer personBallIsGoingTo = court.LocalRelate.personBallIsGoingTo;
+            if (shouldBlock)
             {
-                movement.goToRotation = true;
-                if(vBall.GetSideTouches(CourtScript.OppositeSide(currentSide)) < 3)
-                    rotationAngle = (-Vector3.Angle(personBallIsGoingTo.transform.position, transform.position));
-                movement.transform.eulerAngles = Vector3.up * rotationAngle;
-                if (court.currentStrategy[currentSide][StrategyType.Defense].blocker[currentPosition - 1] && personBallIsGoingTo != null && vBall.GetSideTouches(CourtScript.OppositeSide(currentSide)) > 1)
+                team.AddBlocker(this);
+                movement.faceNet = true;
+
+                //movement.transform.eulerAngles = Vector3.up * rotationAngle;
+                if (vBall.GetSideTouches(CourtScript.OppositeSide(currentSide)) > 1)
                 {
 
                     Vector3 followPlayer = vBall.transform.position;
+                    if (personBallIsGoingTo != null && personBallIsGoingTo.angle < 12)
+                        followPlayer = personBallIsGoingTo.player.transform.position;
                     followPlayer.z = 0.5f * (float)currentSide;
-                    bool walking = Mathf.Abs(followPlayer.x - transform.position.x) < 5;
-                    movement.MoveTowards(followPlayer, walking);
-                    if (!personBallIsGoingTo.movement.isGrounded)
+                    followPlayer.y = transform.position.y;
+                    //print("Original" + currentPosition + ": " + followPlayer);
+                    followPlayer += team.GetBlockSide(this, followPlayer);
+                    //print("New" + currentPosition + ": " + followPlayer);
+                    //bool walking = Mathf.Abs(followPlayer.x - transform.position.x) < 5;
+                    movement.MoveTowards(followPlayer);//, walking);
+                    
+                    if(personBallIsGoingTo != null)
                     {
-                        movement.MoveTowards(followPlayer, personBallIsGoingTo.movement.isWalking);
-                        movement.jump = true;
-                        block = true;
+                        float minimumAirTime = 0.25f;
+                        float maximumAirTime = Mathf.Abs(personBallIsGoingTo.player.movement.jumpSpeed / Physics.gravity.y) - .05f;
+                        float jumpTimeInAir = personBallIsGoingTo.player.movement.jumpSpeed * minimumAirTime + Physics.gravity.y * minimumAirTime * minimumAirTime / 2;
+                        float maxJumpTimeInAir = personBallIsGoingTo.player.movement.jumpSpeed * maximumAirTime + Physics.gravity.y * maximumAirTime * maximumAirTime / 2;
+                        if (!personBallIsGoingTo.player.movement.isGrounded && personBallIsGoingTo.player.movement.transform.position.y > jumpTimeInAir && movement.isGrounded)
+                        {
+                            if (Vector3.ProjectOnPlane(followPlayer - transform.position, Vector3.up).magnitude < 2)
+                            {
+                                if (Mathf.Abs(followPlayer.x - transform.position.x) < .2f || personBallIsGoingTo.player.movement.transform.position.y > maxJumpTimeInAir)
+                                {
+                                    Stop();
+                                    movement.jump = true;
+                                    block = true;
+                                    armWaveRotation.x = 2.5f;
+
+                                    if (personBallIsGoingTo.player.movement.transform.position.y > maxJumpTimeInAir)
+                                    {
+                                        blockArmRotation = -1 * (Mathf.Atan2(2, followPlayer.x - transform.position.x) * Mathf.Rad2Deg - 90);
+                                        armWaveRotation.x = -5f;
+                                    }
+                                    else
+                                    {
+
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                movement.jump = true;
+                                block = true;
+                                blockArmRotation = -1 * (Mathf.Atan2(1, followPlayer.x - transform.position.x) * Mathf.Rad2Deg - 90);
+                                armWaveRotation.x = -5;
+                            }
+                        }
+                        //movement.MoveTowards(followPlayer, personBallIsGoingTo.movement.isWalking);
+                        
                         //print("moving towards player");
                     }
                     if (!movement.isGrounded)
@@ -655,12 +704,13 @@ public class SpecialAction : MonoBehaviour {
                 }
                 else
                 {
+                    //if(!movement.isGrounded)
+                        //movement.transform.eulerAngles = Vector3.up * rotationAngle;
                     ReturnToPosition();
                 }
             }
             else
             {
-                movement.goToRotation = false;
                 ReturnToPosition();
             }
         }
@@ -669,13 +719,16 @@ public class SpecialAction : MonoBehaviour {
     bool ShouldMove()
     {
         Vector3 ballPos = court.LocalRelate.PredictBallLanding();
-        return (CourtScript.FloatToSide(ballPos.z) == currentSide || CourtScript.FloatToSide(vBall.transform.position.z) == currentSide )&& IsSupposedToGetBall() && (court.LocalRelate.personBallIsGoingTo == null || court.LocalRelate.personBallIsGoingTo.currentSide == currentSide);
+        bool shouldBlock = team.GetStrategy(StrategyType.Defense).myPosition[currentPosition -1] == DefensePosition.Blocker && team.currentMode == StrategyType.Defense;
+        return ((CourtScript.FloatToSide(ballPos.z) == currentSide && !shouldBlock) || CourtScript.FloatToSide(vBall.transform.position.z) == currentSide )&& IsSupposedToGetBall() && ((court.LocalRelate.personBallIsGoingTo == null && vBall.GetSideTouches(CourtScript.OppositeSide(currentSide)) < 2) || (court.LocalRelate.personBallIsGoingTo != null && court.LocalRelate.personBallIsGoingTo.player.currentSide == currentSide));
     }
 
     void ReturnToPosition()
     {
         movement.faceNet = true;
         squat = false;
+        if (movement.isGrounded)
+            block = false;
         movement.MoveTowards(court.GetPosition(currentPosition, currentSide, this));
 
     }
@@ -691,17 +744,21 @@ public class SpecialAction : MonoBehaviour {
         //float moveTime = PredictMovementTime(pp.position);
         movement.goToRotation = false;
         movement.faceNet = false;
-        Vector3 landing = court.LocalRelate.MovePositionAtMaxHeight(MaxJumpHeight - jumpError, movement);
+        if (movement.isGrounded)
+            block = false;
+        Vector3 landing = court.LocalRelate.MovePositionAtMaxHeight(MaxJumpHeight - 2*jumpError, movement);
         Vector3 ballDistance = vBall.transform.position - landing;
         if (landing.y > HEIGHT && !movement.jumping)
         {
             float time = (-vBall.rb.velocity.y - Mathf.Sqrt(Mathf.Pow(vBall.rb.velocity.y, 2) - 4 * Physics.gravity.y * ballDistance.y)) / (2 * Physics.gravity.y);
             float jumpDistance = time * movement.jumpSpeed + .5f * time * time * Physics.gravity.y + HEIGHT;
             float distanceToLanding = Vector3.Distance(vBall.rb.velocity * time + vBall.transform.position + Physics.gravity * time * time / 2, landing);
-            if (jumpDistance < landing.y + jumpError && distanceToLanding < 2 && jumpDistance > landing.y)
+            if (jumpDistance < landing.y + jumpError && distanceToLanding < 2 && jumpDistance > landing.y && movement.isGrounded)
                 movement.jump = true;
+            
         }
-
+        if (!movement.isGrounded)
+            movement.jump = false;
         Vector3 distance = landing - movement.transform.position;
         distance = Vector3.ProjectOnPlane(distance, Vector3.up);
         bool shouldSquat = landing.y <= SQUAT_HEIGHT + .5f && vBall.transform.position.y < (1f - vBall.rb.velocity.y / 2f) && distance.magnitude < WALK_LENGTH * 3 / 2f && (!movement.jumping);
@@ -946,7 +1003,7 @@ public class SpecialAction : MonoBehaviour {
                 aimSpot = LocationRelation.StrategyLocationToCourt(aimSpotInfo.location, currentSide);
             else
             {
-                SpecialAction player = court.Players[currentSide].Find(x => x.currentPosition == aimSpotInfo.position);
+                SpecialAction player = team.players.Find(x => x.currentPosition == aimSpotInfo.position);
                 aimSpot = Vector3.ProjectOnPlane(player.transform.position + player.movement.rb.velocity * time, Vector3.up) + (HEIGHT + player.movement.transform.position.y) * Vector3.up + aimSpotInfo.offset;
                 if (!player.movement.isGrounded)
                 {
@@ -1055,14 +1112,39 @@ public class SpecialAction : MonoBehaviour {
                 SetArmMovement(true);
                 armWaveRotation.x -= (Input.mouseScrollDelta.y) * armWaveSensitivity;
             }
-            blockOver = true;
+            else
+            {
+                /*if (Mathf.Abs(leftArm.transform.localEulerAngles.z) < 45 && Mathf.Abs(rightArm.transform.localEulerAngles.z) < 45)
+                {
+                    downArm-= 5f;
+                    print(downArm + ", " + leftArm.transform.localEulerAngles.z + " , " + rightArm.transform.localEulerAngles.z);
+                    if (downArm < -30)
+                        downArm = -30;
+                    leftArm.SetRotation(MyMouseLook.RotationAxes.MouseXAndY,0,downArm);
+                    rightArm.SetRotation(MyMouseLook.RotationAxes.MouseXAndY,0, downArm);
+                }*/
+                if (movement.rb.velocity.y > 0)
+                    downArm -= 1.75f;
+                else
+                {
+                    if (downArm < 0)
+                        downArm += 1.75f;
+                }
+                if (downArm < -40)
+                    downArm = -40;
+                leftArm.SetRotation(MyMouseLook.RotationAxes.MouseXAndY, blockArmRotation, downArm);
+                rightArm.SetRotation(MyMouseLook.RotationAxes.MouseXAndY, blockArmRotation, downArm);
+            }
             
+            
+            blockOver = true;
             if (armWaveRotation.x > 15)
                 armWaveRotation.x = 15;
             if (armWaveRotation.x < -45)
                 armWaveRotation.x = -45;
             hitCooldownTimer = 0;
             armWaveRotation.y = -armWaveRotation.x;
+            blockArmRotation = 0;
             leftArm.OffsetRotation = Quaternion.AngleAxis(armWaveRotation.x, leftArm.XDirection);
             rightArm.OffsetRotation = Quaternion.AngleAxis(armWaveRotation.y, rightArm.XDirection);
             //rb.velocity = rb.velocity.y * Vector3.up;
@@ -1076,7 +1158,13 @@ public class SpecialAction : MonoBehaviour {
                     SetArmMovement(false);
                     SetCameraMovement(true);
                 }
+                else
+                {
+                    rightArm.Reset();
+                    leftArm.Reset();
+                }
                 blockOver = false;
+                downArm = 0;
                 leftArm.OffsetRotation = Quaternion.AngleAxis(0, leftArm.XDirection);
                 rightArm.OffsetRotation = Quaternion.AngleAxis(0, rightArm.XDirection);
                 armWaveRotation = Vector2.zero;
@@ -1430,8 +1518,8 @@ public class SpecialAction : MonoBehaviour {
         //if you let go of the left click then return speed back to normal and hit the ball
         if (!hit || !isPlayer)//Input.GetButtonUp("Fire") || !isPlayer || !Input.GetButton("Fire"))
         {
-            ReturnSpeedToNormal();
             ShootBall();
+            ReturnSpeedToNormal();
         }
         
     }
@@ -1656,7 +1744,7 @@ public class SpecialAction : MonoBehaviour {
                 
                 time = powerConst * regFixedTimeDelta;
                 //calculate the the position of where the ball is going to be at a specific point in time for each particle
-                myParticle[i].position = startingPosition + PredictAddedForce(i * time) + PredictGravity(i * time) + PredictSpin(time, i, ref floaterRef);
+                myParticle[i].position = startingPosition + PredictAddedForce(i * time) + PredictGravity(i * time);// + PredictSpin(time, i, ref floaterRef);
                 myParticle[i].remainingLifetime = 100000;
             }
 
@@ -1706,8 +1794,11 @@ public class SpecialAction : MonoBehaviour {
             }
 
             float floaterConst = (1 - Mathf.Exp(-1 * 4f * (power / MaxPower))) * (1 + Mathf.Pow(power / MaxPower, 2));
-            predictedSpin = tempSpin * Mathf.Abs(time * i * rate - floaterRef.x * floaterConst) / 100;// - floaterRef.x/100); //- (rate * tempSpin - vBall.SpinAddConst * tempSpin);
-
+            predictedSpin = tempSpin * Mathf.Abs(time * i * rate - floaterRef.x * floaterConst)/100;// - floaterRef.x/100); //- (rate * tempSpin - vBall.SpinAddConst * tempSpin);
+            int myIteration = iteration < 50? (int)iteration: 50;
+            //float maxIteration = iteration < 50 ? iteration : 50;
+            float geometricSum = (1 - Mathf.Pow(vBall.SpinAddConst, myIteration)) / (1 - vBall.SpinAddConst);
+            predictedSpin = (tempSpin * geometricSum + tempSpin * Mathf.Pow(vBall.SpinAddConst, myIteration) * (iteration - myIteration));// * regFixedTimeDelta;
             //float rate = (1 - Mathf.Pow(vBall.SpinAddConst, time * i / regFixedTimeDelta)) / (1 - vBall.SpinAddConst);
             //predictedSpin = ((ballSpin.y - 1) * -Vector3.up + ballSpin.x * transform.right ) * Mathf.Pow(time * i, 2) * rate / (100 * vBall.rb.mass);
             //predictedSpin = (-Vector3.up * (ballSpin.y - 1) + myParent.right * ballSpin.x) * rate * time * i / vBall.rb.mass; //Vector3.Scale(ballSpin.y * Vector3.up + ballSpin.x * myParent.right - Vector3.up, -Vector3.up * rate + myParent.right * rate) * time * i;

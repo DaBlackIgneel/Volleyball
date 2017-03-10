@@ -82,9 +82,10 @@ MonoBehaviour:
     size: 1
   - points:
     - {x: 0.5, y: 1.1, z: 2.7}
-    - {x: 1.67, y: 1.1, z: 1.95}
-    - {x: 3.04, y: 1.1, z: 0.99}
-    - {x: 3.75, y: 1.1, z: 0.65}
+    - {x: 1.28, y: 1.1, z: 2.16}
+    - {x: 2.04, y: 1.1, z: 1.66}
+    - {x: 3.09, y: 1.1, z: 0.95}
+    - {x: 3.95, y: 1.1, z: 0.5}
     - {x: 0, y: 0, z: 0}
     - {x: 0, y: 0, z: 0}
     - {x: 0, y: 0, z: 0}
@@ -95,13 +96,12 @@ MonoBehaviour:
     - {x: 0, y: 0, z: 0}
     - {x: 0, y: 0, z: 0}
     - {x: 0, y: 0, z: 0}
-    - {x: 0, y: 0, z: 0}
-    walkToThisPoint: 000000000000000000000000000000
+    walkToThisPoint: 000100000000000000000000000000
     shouldJump: 1
     stopJump: 0
     jumpTime: 1
     timeOffset: 0.2
-    size: 4
+    size: 5
   - points:
     - {x: -2.51, y: 1.1, z: 3.62}
     - {x: -1.48, y: 1.1, z: 1.58}
@@ -147,6 +147,8 @@ MonoBehaviour:
     timeOffset: 0
     size: 0
   blocker: 
+  myPosition: 
+  blockingScheme: 0
   defaultPositions:
   - {x: 3, y: 1.1, z: 6}
   - {x: 3, y: 1.1, z: 1.5}
@@ -167,18 +169,12 @@ MonoBehaviour:
         position: 6
         location: {x: 0, y: 0, z: 0}
         offset: {x: 0, y: 0, z: 0}
-        visible: 1
+        visible: 0
       - type: 0
         speed: 4
         position: 5
         location: {x: 0, y: 0, z: 0}
         offset: {x: 0, y: 0, z: 0}
-        visible: 1
-      - type: 0
-        speed: 0
-        position: 0
-        location: {x: 0, y: 0, z: 0}
-        offset: {x: 0, y: 0, z: 0}
         visible: 0
       - type: 0
         speed: 0
@@ -234,14 +230,32 @@ MonoBehaviour:
         location: {x: 0, y: 0, z: 0}
         offset: {x: 0, y: 0, z: 0}
         visible: 0
-    - size: 1
-      capacity: 20
+      - type: 0
+        speed: 0
+        position: 0
+        location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
+        visible: 0
+    - size: 3
+      capacity: 22
       content:
       - type: 0
         speed: 4
         position: 2
         location: {x: 0, y: 0, z: 0}
         offset: {x: 0, y: 1.2, z: 0}
+        visible: 1
+      - type: 0
+        speed: 2
+        position: 3
+        location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
+        visible: 1
+      - type: 0
+        speed: 1
+        position: 4
+        location: {x: 0, y: 0, z: 0}
+        offset: {x: 0, y: 0, z: 0}
         visible: 0
       - type: 0
         speed: 0

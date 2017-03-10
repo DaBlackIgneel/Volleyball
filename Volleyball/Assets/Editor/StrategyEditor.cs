@@ -339,10 +339,13 @@ public class StrategyEditor : Editor {
     SerializedProperty pass;
     SerializedProperty path;
     SerializedProperty block;
+    SerializedProperty defensePosition;
     List<SerializedProperty> balls;
     Texture courtImage;
     Texture fenceImage;
     Texture ballImage;
+    Texture angleImage;
+    Texture seamImage;
     Texture[] Line;
     Vector2[] players;
     Vector2[] oldPlayers;
@@ -376,6 +379,7 @@ public class StrategyEditor : Editor {
         pass = serializedObject.FindProperty("myPass");
         path = serializedObject.FindProperty("movementPath");
         block = serializedObject.FindProperty("blocker");
+        defensePosition = serializedObject.FindProperty("myPosition");
         InitializePlayers();
         InitializeCourt();
         buttonSize = Vector2.one * 20;
@@ -442,6 +446,8 @@ public class StrategyEditor : Editor {
         courtImage = (Texture)Resources.Load("court");
         ballImage = (Texture)Resources.Load("ball");
         fenceImage = (Texture)Resources.Load("fence");
+        angleImage = (Texture)Resources.Load("angle");
+        seamImage = (Texture)Resources.Load("seam");
     }
 
     
@@ -508,12 +514,30 @@ public class StrategyEditor : Editor {
                     for (int b = block.arraySize; b > CourtScript.MaxNumberOfPlayers; b--)
                         block.DeleteArrayElementAtIndex(b - 1);
                 }
+                if (defensePosition.arraySize != CourtScript.MaxNumberOfPlayers)
+                {
+                    for (int b = defensePosition.arraySize; b < CourtScript.MaxNumberOfPlayers; b++)
+                        defensePosition.InsertArrayElementAtIndex(b);
+                    for (int b = defensePosition.arraySize; b > CourtScript.MaxNumberOfPlayers; b--)
+                        defensePosition.DeleteArrayElementAtIndex(b - 1);
+                }
+
                 EditorGUI.indentLevel++;
+                EditorGUILayout.PropertyField(defensePosition.GetArrayElementAtIndex(i), new GUIContent("Defensive Position"));
+
                 EditorGUILayout.PropertyField(block.GetArrayElementAtIndex(i),new GUIContent("Block"));
                 EditorGUI.indentLevel--;
-                if (block.GetArrayElementAtIndex(i).boolValue)
+                if (defensePosition.GetArrayElementAtIndex(i).enumValueIndex == 0)
                 {
                     GUI.DrawTexture(new Rect(Vector2.Scale(players[i], size) + PlaceOnCourt(fenceSize), fenceSize), fenceImage);
+                }
+                else if(defensePosition.GetArrayElementAtIndex(i).enumValueIndex == 1)
+                {
+                    GUI.DrawTexture(new Rect(Vector2.Scale(players[i], size) + PlaceOnCourt(fenceSize), fenceSize), angleImage);
+                }
+                else if(defensePosition.GetArrayElementAtIndex(i).enumValueIndex == 2)
+                {
+                    GUI.DrawTexture(new Rect(Vector2.Scale(players[i], size) + PlaceOnCourt(fenceSize), fenceSize), seamImage);
                 }
             }
             if (oldPlayers[i] != players[i])
