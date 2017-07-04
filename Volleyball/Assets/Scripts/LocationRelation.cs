@@ -84,8 +84,12 @@ public class LocationRelation : MonoBehaviour {
         while (true)
         {
             yield return new WaitForSeconds(0.05f);
-            currentAttack = court.LeftTeam.currentMode == StrategyType.Offense ? Side.Left : Side.Right;
-            court.LocalRelate.FindWhoBallIsGoingTo(currentAttack);
+
+            if (court.teams.Count > 1)
+            {
+                currentAttack = court.teams[Side.Left].currentMode == StrategyType.Offense ? Side.Left : Side.Right;
+                court.LocalRelate.FindWhoBallIsGoingTo(currentAttack);
+            }
         }
     }
 
@@ -169,8 +173,12 @@ public class LocationRelation : MonoBehaviour {
     {
         for (;;)
         {
-            FindClosestPlayerToBall(Side.Left);
-            FindClosestPlayerToBall(Side.Right);
+            foreach(Side side in court.sideInPlay)
+            {
+                FindClosestPlayerToBall(side);
+            }
+            /*FindClosestPlayerToBall(Side.Left);
+            FindClosestPlayerToBall(Side.Right);*/
             yield return new WaitForSeconds(.05f);
         }
     }

@@ -75,15 +75,9 @@ public class SpecialAction : MonoBehaviour {
 
     public Vector3 distanceToBallLanding;
 
-    public PlayerMovement myMovement
-    {
-        get { return movement; }
-    }
+    public PlayerMovement myMovement{ get{ return movement;}}
 
-    public CourtScript Court
-    {
-        get { return court; }
-    }
+    public CourtScript Court{ get{ return court; }}
 
     public float MaxJumpHeight
     {
@@ -94,12 +88,7 @@ public class SpecialAction : MonoBehaviour {
         }
     }
 
-    public bool Hitting
-    {
-        get
-        {
-            return hitting;
-        }
+    public bool Hitting{ get{ return hitting;}
     }
 
     public float armWaveSensitivity = .5f;
@@ -108,7 +97,8 @@ public class SpecialAction : MonoBehaviour {
     public bool goToBall;
     PlayerMovement movement;
     MyMouseLook m_MouseLook;
-    Transform myParent;
+    [System.NonSerialized]
+    public Transform myParent;
 
     public bool block;
     bool blockOver;
@@ -233,6 +223,11 @@ public class SpecialAction : MonoBehaviour {
     bool changeHitMode = true;
     bool changeChangeHitMode = true;
 
+    PlayerAim playerAim;
+    PlayerShoot playerShoot;
+    Vector3 playerPower;
+    ShootCapsule shootInfo;
+
     // Use this for initialization
     void Start () {
         myServes = new List<ServeOfChoice>();
@@ -254,6 +249,35 @@ public class SpecialAction : MonoBehaviour {
         fpc = myParent.parent.Find("FirstPersonCamera").GetComponent<Camera>();
         tpc = myParent.parent.Find("ThirdPersonCamera").GetComponent<CameraFollow>();
 
+        //
+        try
+        {
+            playerAim = GetComponent<PlayerAim>();
+            if (playerAim == null)
+                playerAim = gameObject.AddComponent<PlayerAim>();
+        }
+        catch (System.Exception e)
+        {
+            playerAim = gameObject.AddComponent<PlayerAim>();
+        }
+        finally
+        {
+            playerAim.Initialize(this);
+        }
+        try
+        {
+            playerShoot = GetComponent<PlayerShoot>();
+            if (playerShoot == null)
+                playerShoot = gameObject.AddComponent<PlayerShoot>();
+        }
+        catch (System.Exception e)
+        {
+            playerShoot = gameObject.AddComponent<PlayerShoot>();
+        }
+        finally
+        {
+            playerShoot.Initialize(this);
+        }
         //finds the court which is used to refer to all the game specifics
         court = GameObject.FindGameObjectWithTag("CourtController").GetComponent<CourtScript>();
 
@@ -363,16 +387,6 @@ public class SpecialAction : MonoBehaviour {
             if(isPlayer)
                 GetInput();
 
-            //slows down the time when you are hitting the ball
-            
-
-            //if you finished hitting the ball, then apply the force onto the ball
-            if (shoot)
-            {
-                Shoot = true;
-                shoot = false;
-            }
-
             //allow for fixed update to run at normal speed even when you slow down time
             //this allows for you to controll your character in realtime otherwise the
             //controll is choppy
@@ -385,17 +399,15 @@ public class SpecialAction : MonoBehaviour {
             }
             //when the cooldown is over then allow player to hit the ball
             else
+            {    
                 //checks to see if player is in contact with ball
                 CheckHit();
-
-            
-            
+            }
         }
 
         //when the rally's over then allow for all rally actions
         else
         {
-            
             //moves the player to their starting positions;
             if (resetPosition)
             {
@@ -1373,7 +1385,14 @@ public class SpecialAction : MonoBehaviour {
         //if you are not finished aiming than aim the ball
         if (hitMode == 1)//!aimed)
         {
-            //set the default direction (mainly used by the computer)
+
+            playerPower = playerShoot.ResetPower();
+            aimDir = playerAim.UserAim();
+            //set the reference position used for the power/spin calculations
+            Vector2 mousePos = Input.mousePosition;
+
+            originMousePos = mousePos;
+            /*//set the default direction (mainly used by the computer)
             Ray mousePoint = new Ray(Vector3.zero,Vector3.forward * ((float)currentSide) * -1 + Vector3.up);
 
             //have the directon be where the mouse is currently pointing to
@@ -1410,7 +1429,7 @@ public class SpecialAction : MonoBehaviour {
 
             //if you have left clicked then begin power calculations 
             //if you are a computer go straight to the power calculations
-            /*if ((Input.GetButtonDown("Fire") || Input.GetButton("Fire") hit hitMode == 2)&& !cancelAim || !isPlayer)
+            if ((Input.GetButtonDown("Fire") || Input.GetButton("Fire") hit hitMode == 2)&& !cancelAim || !isPlayer)
             {
                 if (isPlayer)
                     SetAimed(true);
@@ -1427,6 +1446,7 @@ public class SpecialAction : MonoBehaviour {
                 SetAimed(true);
             else
                 aimed = true;
+            playerPower = playerShoot.ResetPower();
             pastBallVelocity = vBall.rb.velocity;
             vBall.ResetMotion();
             originAimDir = aimDir;
@@ -1446,7 +1466,7 @@ public class SpecialAction : MonoBehaviour {
     //calculates the power used to hit the ball
     void HitTheBall()
     {
-        //the mouse position difference from the point where you aimed the ball,
+        /*//the mouse position difference from the point where you aimed the ball,
         //and the current mouse position
         Vector2 deltaMousePos = (Vector2)Input.mousePosition - originMousePos;
         
@@ -1513,12 +1533,16 @@ public class SpecialAction : MonoBehaviour {
             cancelAim = true;
             hitMode = 1;
             return;
-        }
+        }*/
 
+        shootInfo = playerShoot.UserCalculatePower(originMousePos,playerPower,myLastVelocity);
+        playerPower = shootInfo.powerVector;
         //if you let go of the left click then return speed back to normal and hit the ball
         if (!hit || !isPlayer)//Input.GetButtonUp("Fire") || !isPlayer || !Input.GetButton("Fire"))
         {
-            ShootBall();
+
+            playerShoot.ShootBall(vBall, aimDir, shootInfo.GetCalculatedPower());
+            //ShootBall();
             ReturnSpeedToNormal();
         }
         
@@ -1757,7 +1781,7 @@ public class SpecialAction : MonoBehaviour {
     //predict the affect of the force onto the ball
     Vector3 PredictAddedForce(float time)
     {
-        return aimDir * power / vBall.rb.mass * time;
+        return aimDir * power /*shootInfo.GetCalculatedPower()*/  / vBall.rb.mass * time;
         //return (Vector3.Scale(aimDir,new Vector3(1,1/yScale,1)) * power / vBall.rb.mass / tester1) * time; //3.75f
     }
 
