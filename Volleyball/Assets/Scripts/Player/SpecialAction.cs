@@ -40,12 +40,6 @@ public class SpecialAction : MonoBehaviour {
     public bool isPlayer = true;
     public Side currentSide = Side.Left;
 
-    public float tau = .5f;
-    public float divisionFactor = 100f;
-
-    [Range(.001f, 2)]
-    public float lobConst = 2;
-    [Range(1, 4)]
     public float smashConst = 2;
 
     public bool resetPosition;
@@ -54,24 +48,6 @@ public class SpecialAction : MonoBehaviour {
     public float lobAgjust = 1f;
     public float maxSpin = 5;
     public Team team;
-
-    [Range(0.2f,1)]
-    public float aimingDetail = .5f;
-    private float myAimingDetail;
-    public float AimingDetail { set {
-            if (myAimingDetail != value)
-            {
-                myAimingDetail = value;
-                myBurst[0].minCount = System.Convert.ToInt16( Mathf.Pow(myAimingDetail, 1.5f) * 200);
-                myBurst[0].maxCount = System.Convert.ToInt16(Mathf.Pow(myAimingDetail, 1.5f) * 200);
-                mySystem.emission.SetBursts(myBurst);
-                if(hitting)
-                {
-                    StopAimingParticles();
-                    StartAimingParticles();
-                }
-            }
-        } }
 
     public Vector3 distanceToBallLanding;
 
@@ -126,7 +102,9 @@ public class SpecialAction : MonoBehaviour {
 
     bool Shoot
     {
-        set{ if(value){ ShootBall();}}
+        set
+        { /*if(value){ ShootBall(); }*/
+        }
     }
 
     bool IgnoreCollision;    
@@ -227,6 +205,7 @@ public class SpecialAction : MonoBehaviour {
     PlayerShoot playerShoot;
     Vector3 playerPower;
     ShootCapsule shootInfo;
+    DrawPath shotPathDrawer;
 
     // Use this for initialization
     void Start () {
@@ -239,6 +218,10 @@ public class SpecialAction : MonoBehaviour {
         myColliders = myParent.parent.GetComponents<CapsuleCollider>();
         //the component that controlls the physics of this player
         rb = myParent.parent.GetComponent<Rigidbody>();
+
+        //the component to draw the path of where you will shoot;
+        shotPathDrawer = GetComponent<DrawPath>();
+        shootInfo = new ShootCapsule();
 
         //finds the arms used to block
         arms = myParent.parent.Find("Arms");
@@ -349,8 +332,6 @@ public class SpecialAction : MonoBehaviour {
     // Update is called once per frame
     void Update()
     {
-        //if (!hitting)
-        AimingDetail = aimingDetail;
 
         if (isPlayer)
         {
@@ -1083,7 +1064,7 @@ public class SpecialAction : MonoBehaviour {
 
         }
         ReturnSpeedToNormal();
-        ShootBall();
+        //ShootBall();
     }
 
     void ComputerActions()
@@ -1301,13 +1282,10 @@ public class SpecialAction : MonoBehaviour {
                 {
                     hitMode++;
                     changeHitMode = false;
-                    //changeChangeHitMode = false;
                 }
                 if ((Input.GetButtonUp("Fire") || !Input.GetButton("Fire")) && !changeHitMode)// && !changeChangeHitMode)
                 {
                     changeHitMode = true;
-                    //StartCoroutine("EnableChangeHitMode", true);
-                    //changeChangeHitMode = true;
                 }
             }
             shootUp = Input.GetMouseButton(2);
@@ -1381,171 +1359,54 @@ public class SpecialAction : MonoBehaviour {
     {
         //make sure that the mouse is visible
         Cursor.visible = true;
+
+        //get the position of the ball for the shoot path simulation
         startingPosition = vBall.rb.position;
+
         //if you are not finished aiming than aim the ball
         if (hitMode == 1)//!aimed)
         {
-
-            playerPower = playerShoot.ResetPower();
-            aimDir = playerAim.UserAim();
-            //set the reference position used for the power/spin calculations
-            Vector2 mousePos = Input.mousePosition;
-
-            originMousePos = mousePos;
-            /*//set the default direction (mainly used by the computer)
-            Ray mousePoint = new Ray(Vector3.zero,Vector3.forward * ((float)currentSide) * -1 + Vector3.up);
-
-            //have the directon be where the mouse is currently pointing to
-            if (isPlayer)
-            {
-                mousePoint = Camera.main.ScreenPointToRay(Input.mousePosition);
-
-                //set the reference position used for the power/spin calculations
-                Vector2 mousePos = Input.mousePosition;
-                originMousePos = mousePos;
-            }
+            //Reset the power direction;
+            shootInfo = playerShoot.ResetPower();
             
-            //normalize the current direction so that the magnitude == 1
-            aimDir = mousePoint.direction;
-            aimDir = aimDir.normalized;
-
-            //set the current power to a dummy number so mainly used for the predictions
-            power = MaxPower * minimumPower*1.5f;
-
-            //reset the spin so that the previous hit has no affect on the current one
-            ballSpin = Vector2.up;
-
-            //if the aim direction is is pointed up, than add more power to the up direction
-            //to add an arc
-            if (aimDir.y > 0)
-            {
-                aimDir.y *= vBall.rb.mass;
-            }
-
-            if(cancelAim && !hit)
-            {
-                cancelAim = false;
-            }
-
-            //if you have left clicked then begin power calculations 
-            //if you are a computer go straight to the power calculations
-            if ((Input.GetButtonDown("Fire") || Input.GetButton("Fire") hit hitMode == 2)&& !cancelAim || !isPlayer)
-            {
-                if (isPlayer)
-                    SetAimed(true);
-                else
-                    aimed = true;
-                pastBallVelocity = vBall.rb.velocity;
-                vBall.ResetMotion();
-                originAimDir = aimDir;
-            }*/
+            aimDir = playerAim.UserAim();
+            shootInfo.aimDirection = aimDir;
+            //set the reference position used for the power/spin calculations
+            originMousePos = Input.mousePosition;
         }
-        if ((hitMode == 2) && !cancelAim || !isPlayer)
+        else if ((hitMode == 2) && !cancelAim)
         {
             if (isPlayer)
                 SetAimed(true);
             else
                 aimed = true;
-            playerPower = playerShoot.ResetPower();
+
+            //store the old ball velocity so that when you cancel your shot, the ball continues moving
             pastBallVelocity = vBall.rb.velocity;
+
+            //stop the ball from moving
             vBall.ResetMotion();
-            originAimDir = aimDir;
             hitMode = 3;
         }
         //if you are finished aiming, then start the power calculations
-        if (hitMode == 3)//aimed)
+        else if (hitMode == 3)//aimed)
         {
-            HitTheBall();
+            //calculates the power used to hit the ball
+            shootInfo = playerShoot.UserCalculatePower(originMousePos, shootInfo, myLastVelocity);
+            playerPower = shootInfo.powerVector;
+            //if you let go of the left click then return speed back to normal and hit the ball
+            if (!hit || !isPlayer)//Input.GetButtonUp("Fire") || !isPlayer || !Input.GetButton("Fire"))
+            {
+
+                playerShoot.ShootBall(vBall, shootInfo);
+                
+                ReturnSpeedToNormal();
+            }
         }
 
         //predict where the ball will go
-        if (isPlayer && hitting)
+        if (hitting)
             PredictShot();
-    }
-
-    //calculates the power used to hit the ball
-    void HitTheBall()
-    {
-        /*//the mouse position difference from the point where you aimed the ball,
-        //and the current mouse position
-        Vector2 deltaMousePos = (Vector2)Input.mousePosition - originMousePos;
-        
-        //reset the aim direction to the direction that you originally aimed at
-        aimDir = originAimDir;
-
-        float runHitConst = court.serve ? 4 : 10;
-        
-        //if you are the player then allow for you to change the power and spin the ball
-        if (isPlayer)
-        {
-            //set the horizontal component of the spin based on the horizontal mouse position
-            ballSpin.x = deltaMousePos.x / (Screen.width / 2) * maxSpin;
-            
-            //if the mouse's Y position is above the original mouse position, then do a lob pass
-            if (deltaMousePos.y > 0)
-            {
-                //Allow the the adjustment of the arc by scrolling the mouse wheel
-                lobAgjust += (Input.mouseScrollDelta.y) * lobScrollSpeed;
-                if (lobAgjust < 0.01f)
-                    lobAgjust = 0.01f;
-                float myLob = lobConst * lobAgjust;
-                
-                //calculate the lob direction
-                aimDir.y += deltaMousePos.y / (Screen.height / 2 * myLob) * vBall.rb.mass;
-                aimDir = aimDir.normalized;
-
-                //no floater of forward spin for a lob
-                ballSpin.y = 1;
-            }
-            //if the mouse's Y position is above the original mouse position, then do a smash hit
-            else
-            {
-                //add more force to the hit
-                aimDir *= (smashConst + myLastVelocity.magnitude/ runHitConst);
-
-                //use the mouse scroll to control the amount of forward spin on the ball
-                if(ballSpin.y > 1.1f)
-                    ballSpin.y -= (Input.mouseScrollDelta.y) * smashScrollSpeed * (1 + myLastVelocity.magnitude/ runHitConst);
-                
-                //when there no forward spin use the mouse scroll to control the strength of the
-                //floater randomness
-                else
-                    ballSpin.y -= (Input.mouseScrollDelta.y) * smashScrollSpeed/10f;
-
-                //set the max and min parts of the vertical spin
-                if (ballSpin.y < 0)
-                    ballSpin.y = 0;
-                else if (ballSpin.y > (maxSpin* (1 + myLastVelocity.magnitude/ runHitConst) + 1))
-                    ballSpin.y = maxSpin * (1 + myLastVelocity.magnitude/ runHitConst) + 1;
-            }
-            //when the ball is lower, add an inherent arc to the hit
-            aimDir.y += Mathf.Sign(aimDir.y) * Mathf.Exp(Mathf.Abs(vBall.rb.transform.position.y) * -1 / tau) / divisionFactor;
-
-            //calculate the power of the hit
-            power = (Mathf.Abs(deltaMousePos.y) / (Screen.height / 2 * (1 / (1 - minimumPower))) + minimumPower) * MaxPower;
-        }
-        //if you right clicked before you let go of the left click then cancel power calculations and 
-        //go back to aiming
-        if (Input.GetButtonDown("Cancel") && isPlayer)
-        {
-            SetAimed(false);
-            vBall.rb.velocity = pastBallVelocity;
-            cancelAim = true;
-            hitMode = 1;
-            return;
-        }*/
-
-        shootInfo = playerShoot.UserCalculatePower(originMousePos,playerPower,myLastVelocity);
-        playerPower = shootInfo.powerVector;
-        //if you let go of the left click then return speed back to normal and hit the ball
-        if (!hit || !isPlayer)//Input.GetButtonUp("Fire") || !isPlayer || !Input.GetButton("Fire"))
-        {
-
-            playerShoot.ShootBall(vBall, aimDir, shootInfo.GetCalculatedPower());
-            //ShootBall();
-            ReturnSpeedToNormal();
-        }
-        
     }
 
     //set whether you have aimed or not, which will in turn adjust the 
@@ -1576,20 +1437,6 @@ public class SpecialAction : MonoBehaviour {
             rightArm.Reset();
             leftArm.Reset();
         }
-    }
-
-    //add force and spin to the ball
-    void ShootBall()
-    {
-        
-        vBall.rb.velocity = Vector3.zero;
-        vBall.Shoot(aimDir * power,ballSpin, myParent);
-        vBall.CollideWithPlayer(this);
-        rb.velocity = Vector3.zero;
-        //if the court says that your ready to serve then tell them that you are currently
-        //serving
-        if (court.readyToServe)
-            court.readyToServe = false;
     }
 
     //void OnTriggerEnter(Collider other)
@@ -1685,6 +1532,9 @@ public class SpecialAction : MonoBehaviour {
         hitMode = 0;
         hitCooldownTimer = 0;
 
+        //Clear the information used for shooting the ball
+        shootInfo.Reset();
+
         //if the player is not a computer then enable movement
         if (isPlayer)
         {
@@ -1696,11 +1546,11 @@ public class SpecialAction : MonoBehaviour {
     void ResetMovement()
     {
         //enable the control of movement
-        //if (isPlayer)
-            movement.enabled = true;
+        movement.enabled = true;
 
         //stop using the particles for predicting where the ball will go
-        StopAimingParticles();
+        shotPathDrawer.ClearParticles();
+        shotPathDrawer.ClearFunction();
 
         //allow the camera to move
         SetCameraMovement(true);
@@ -1720,121 +1570,16 @@ public class SpecialAction : MonoBehaviour {
     #endregion
 
     #region Prediction
-    
-    //starts the particle creations
-    void StartAimingParticles()
-    {
-        if(mySystem.isStopped)
-        {
-            mySystem.Play();
-            mySystem.emission.GetBursts(myBurst);
-
-            myParticle = new ParticleSystem.Particle[myBurst[0].minCount];
-        }
-
-        //gets all the current particles that are alive
-        if(mySystem.isPlaying)
-        {
-            mySystem.GetParticles(myParticle);
-        }
-    }
-
-    //stops the particle creation and deletes all particles
-    void StopAimingParticles()
-    {
-        if(mySystem.isPlaying)
-        {
-            mySystem.Clear();
-            mySystem.Stop();
-        }
-    }
-
     //predicts where the ball will go
     void PredictShot()
     {
-        //creates and gets the active particles
-        StartAimingParticles();
-        if(mySystem.particleCount > 0)
-        {
-            //increase the distance between the particles as the power increases
-            //float powerConst = 7 *power / MaxPower / 10 * 30/ mySystem.particleCount;
-            float powerConst = power / MaxPower * 7 * 30 / mySystem.particleCount;
-            float time = 0;
-
-            //used to calculate the position of a floater hit (not always accurate
-            Vector3 floaterRef = Vector3.zero;
-            for(int i = 0; i < myParticle.Length; i++)
-            {
-                
-                time = powerConst * regFixedTimeDelta;
-                //calculate the the position of where the ball is going to be at a specific point in time for each particle
-                myParticle[i].position = startingPosition + PredictAddedForce(i * time) + PredictGravity(i * time);// + PredictSpin(time, i, ref floaterRef);
-                myParticle[i].remainingLifetime = 100000;
-            }
-
-            //move the particles to the predicted position
-            mySystem.SetParticles(myParticle, myParticle.Length);
-        }
-
-    }
-
-    //predict the affect of the force onto the ball
-    Vector3 PredictAddedForce(float time)
-    {
-        return aimDir * power /*shootInfo.GetCalculatedPower()*/  / vBall.rb.mass * time;
-        //return (Vector3.Scale(aimDir,new Vector3(1,1/yScale,1)) * power / vBall.rb.mass / tester1) * time; //3.75f
-    }
-
-    //predict the affect of gravity on the ball
-    Vector3 PredictGravity(float time)
-    {
-        return Physics.gravity * Mathf.Pow(time, 2) * .5f;
-        //return -tester2 * Vector3.Scale(Physics.gravity, Physics.gravity) * Mathf.Pow(time, 2); //-10
-    }
-
-    //predict the affect of the spin on the ball
-    Vector3 PredictSpin(float time, int i, ref Vector3 floaterRef)
-    {
-
-        Vector3 predictedSpin = Vector3.zero;
-        //if the ball has spin predict where it will go
-        if (ballSpin.y >= 1)
-        {
-            Vector3 tempSpin = (ballSpin.y - 1) * -Vector3.up + ballSpin.x * transform.right;
-            float iteration = time * i / regFixedTimeDelta;
-
-            float rate;
-            if (iteration < 50)
-            {
-                rate = (1 - Mathf.Pow(vBall.SpinAddConst, iteration)) / (1 - vBall.SpinAddConst) - 1f;
-                floaterRef.x += Mathf.Pow(vBall.SpinAddConst, iteration) * (iteration - 1) * regFixedTimeDelta;
-                floaterRef.y = time * (i) / regFixedTimeDelta;
-            }
-            else
-            {
-                rate = (1 - Mathf.Pow(vBall.SpinAddConst, floaterRef.y)) / (1 - vBall.SpinAddConst) - 1f;
-                //rate += (iteration - 50) * Mathf.Pow(vBall.SpinAddConst, 50);
-                //floaterRef.x += Mathf.Pow(vBall.SpinAddConst, 50) * (iteration - 1) * regFixedTimeDelta;
-            }
-
-            float floaterConst = (1 - Mathf.Exp(-1 * 4f * (power / MaxPower))) * (1 + Mathf.Pow(power / MaxPower, 2));
-            predictedSpin = tempSpin * Mathf.Abs(time * i * rate - floaterRef.x * floaterConst)/100;// - floaterRef.x/100); //- (rate * tempSpin - vBall.SpinAddConst * tempSpin);
-            int myIteration = iteration < 50? (int)iteration: 50;
-            //float maxIteration = iteration < 50 ? iteration : 50;
-            float geometricSum = (1 - Mathf.Pow(vBall.SpinAddConst, myIteration)) / (1 - vBall.SpinAddConst);
-            predictedSpin = (tempSpin * geometricSum + tempSpin * Mathf.Pow(vBall.SpinAddConst, myIteration) * (iteration - myIteration));// * regFixedTimeDelta;
-            //float rate = (1 - Mathf.Pow(vBall.SpinAddConst, time * i / regFixedTimeDelta)) / (1 - vBall.SpinAddConst);
-            //predictedSpin = ((ballSpin.y - 1) * -Vector3.up + ballSpin.x * transform.right ) * Mathf.Pow(time * i, 2) * rate / (100 * vBall.rb.mass);
-            //predictedSpin = (-Vector3.up * (ballSpin.y - 1) + myParent.right * ballSpin.x) * rate * time * i / vBall.rb.mass; //Vector3.Scale(ballSpin.y * Vector3.up + ballSpin.x * myParent.right - Vector3.up, -Vector3.up * rate + myParent.right * rate) * time * i;
-        }
-        //if the ball is a floater then predict where it will go
-        else
-        {
-            predictedSpin = (Vector3.up * vBall.GetFloater(time * i / regFixedTimeDelta, ballSpin.y, Direction.Y) + Vector3.right * vBall.GetFloater(time * i / regFixedTimeDelta, ballSpin.y, Direction.X)) * time * vBall.rb.mass;
-            predictedSpin += floaterRef;
-            floaterRef = predictedSpin;
-        }
-        return predictedSpin;
+        Function shotFunction = new Function(null, shootInfo.GetCalculateShot());
+        shotPathDrawer.SetPathSpread(shootInfo.power / playerShoot.MaxPower * 7 * 30);
+        shotPathDrawer.SetFunction(shotFunction);
+        if(!shotPathDrawer.FunctionExists(Function.Gravity()))
+            shotPathDrawer.AddGravity();
+        shotPathDrawer.particleStartPosition = startingPosition;
+        shotPathDrawer.SimulatePath();
     }
     #endregion
 

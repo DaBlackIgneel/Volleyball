@@ -6326,24 +6326,6 @@ Prefab:
       propertyPath: m_RootOrder
       value: 4
       objectReference: {fileID: 0}
-    - target: {fileID: 1832625607479016, guid: 5e9e851c0e142814dac026a256ba2ac0, type: 2}
-      propertyPath: m_IsActive
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 114225345423343298, guid: 5e9e851c0e142814dac026a256ba2ac0,
-        type: 2}
-      propertyPath: isPlayer
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 114225345423343298, guid: 5e9e851c0e142814dac026a256ba2ac0,
-        type: 2}
-      propertyPath: currentPosition
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 1315777919500408, guid: 5e9e851c0e142814dac026a256ba2ac0, type: 2}
-      propertyPath: m_TagString
-      value: PlayerBody
-      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: 5e9e851c0e142814dac026a256ba2ac0, type: 2}
   m_IsPrefabParent: 0

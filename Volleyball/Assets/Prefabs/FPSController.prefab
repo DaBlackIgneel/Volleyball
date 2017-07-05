@@ -76,9 +76,10 @@ GameObject:
   - component: {fileID: 114225345423343298}
   - component: {fileID: 54199077330131924}
   - component: {fileID: 136509959732860770}
+  - component: {fileID: 114237129886297378}
   m_Layer: 11
   m_Name: PlayerBody
-  m_TagString: Untagged
+  m_TagString: PlayerBody
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -203,7 +204,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!1 &1843809145779182
 GameObject:
   m_ObjectHideFlags: 0
@@ -457,7 +458,7 @@ Transform:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1843809145779182}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 1.3, y: 0, z: -3.62}
+  m_LocalPosition: {x: 1.3, y: 0, z: -6.77}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 4015145354290960}
@@ -1002,21 +1003,18 @@ MonoBehaviour:
   yScale: 1
   MaxPower: 25
   minimumPower: 0.1
-  currentPosition: 2
-  isPlayer: 0
+  currentPosition: 1
+  isPlayer: 1
   currentSide: -1
-  tau: 0.5
-  divisionFactor: 100
-  lobConst: 0.45
   smashConst: 2
   resetPosition: 0
   shoot: 0
   squatSpeed: 0.1
   lobAgjust: 1
   maxSpin: 5
-  aimingDetail: 0.604
   distanceToBallLanding: {x: 0, y: 0, z: 0}
   armWaveSensitivity: 5
+  block: 0
   squat: 0
   hitTime: 0
   ballSpin: {x: 0, y: 0}
@@ -1050,6 +1048,21 @@ MonoBehaviour:
   maximumX: 360
   minimumY: -60
   maximumY: 60
+--- !u!114 &114237129886297378
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1315777919500408}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 08173dfccc4f0324da1fc704f3910ff0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  mySystem: {fileID: 198279697457084576}
+  particleStartPosition: {x: 0, y: 0, z: 0}
+  aimingDetail: 0.5
+  pathSpread: 0
 --- !u!114 &114385170433692852
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1211,7 +1224,7 @@ ParticleSystem:
   m_GameObject: {fileID: 1408508760035334}
   serializedVersion: 5
   lengthInSec: 20
-  speed: 1
+  simulationSpeed: 1
   looping: 0
   prewarm: 0
   playOnAwake: 0
@@ -1258,7 +1271,7 @@ ParticleSystem:
   moveWithTransform: 1
   moveWithCustomTransform: {fileID: 0}
   scalingMode: 1
-  randomSeed: 598412136
+  randomSeed: -95599359
   InitialModule:
     serializedVersion: 3
     enabled: 1

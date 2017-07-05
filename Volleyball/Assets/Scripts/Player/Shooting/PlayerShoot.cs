@@ -7,28 +7,52 @@ public class ShootCapsule
     public Vector3 powerVector;
     public float power;
     public Vector3 spin;
+    public Vector3 aimDirection;
 
-    private Vector3 additivePower;
+    private Vector3 additiveDirection;
+    private Vector3 minimumDirection;
 
-    public ShootCapsule(Vector3 powerVector, float power)
+    public ShootCapsule(Vector3? powerVector = null, float power = 1)
     {
-        this.powerVector = powerVector;
+        this.powerVector = powerVector ?? Vector3.one;
         this.power = power;
     }
 
     public Vector3 GetCalculatedPower()
     {
-        return (powerVector + additivePower) * power;
+        return powerVector * power;
     } 
 
-    public void SetAdditivePower(Vector3 addPower)
+    public Vector3 GetCalculateShot()
     {
-        additivePower = addPower;
+        return Vector3.Scale(GetCalculatedPower(), GetCalculatedDirection());
+    }
+
+    public Vector3 GetCalculatedDirection()
+    {
+        Vector3 calculatedDirection = aimDirection;
+        if (calculatedDirection.x < minimumDirection.x)
+            calculatedDirection.x = minimumDirection.x;
+        if (calculatedDirection.y < minimumDirection.y)
+            calculatedDirection.y = minimumDirection.y;
+        if (calculatedDirection.z < minimumDirection.z)
+            calculatedDirection.z = minimumDirection.z;
+        return (additiveDirection + calculatedDirection).normalized;
+    }
+
+    public void SetAdditiveDirection(Vector3 addDirection)
+    {
+        additiveDirection = addDirection;
     }
 
     public void SetSpin(Vector3 spin)
     {
         this.spin = spin;
+    }
+
+    public void SetMinimumDirection(Vector3 minimumDir)
+    {
+        minimumDirection = minimumDir;
     }
 
     public void SetPower(float power)
@@ -40,13 +64,23 @@ public class ShootCapsule
     {
         this.powerVector = powerVector;
     }
+
+    public void Reset()
+    {
+        powerVector = Vector3.one;
+        power = 1;
+        spin = Vector3.up;
+        minimumDirection = Vector3.one * float.MinValue;
+        additiveDirection = Vector3.zero;
+        aimDirection = Vector3.one;
+    }
 }
 
 
 public class PlayerShoot : MonoBehaviour {
 
-    [Range(0, 50)]
-    public float MaxPower = 25;
+    [Range(0, 25)]
+    public float MaxPower = 12.5f;
     [Range(0.001f, .99f)]
     public float minimumPower = .1f;
     [Range(.001f, 2)]
@@ -80,37 +114,37 @@ public class PlayerShoot : MonoBehaviour {
         this.player = player;
     }
 
-    public ShootCapsule UserCalculatePower(Vector2 prevMousePos, Vector3 powerVector, Vector3 myLastVelocity)
+    public ShootCapsule UserCalculatePower(Vector2 prevMousePos, ShootCapsule shotInfo, Vector3 myLastVelocity)
     {
         //the mouse position difference from the point where you aimed the ball,
         //and the current mouse position
         Vector2 deltaMousePos = (Vector2)Input.mousePosition - prevMousePos;
+        Vector3 minDir = Vector3.one * float.MinValue;
+        Vector3 addDir = Vector3.zero;
         float runHitConst = player.Court.serve ? 4 : 10;
-        
+        runHitConst = deltaMousePos.magnitude > 10 ? runHitConst : 1;
         //set the horizontal component of the spin based on the horizontal mouse position
         ballSpin.x = deltaMousePos.x / (Screen.width / 2) * maxSpin;
 
         //calculate the power of the hit
-        power = (Mathf.Abs(deltaMousePos.y) / (Screen.height / 2 * (1 / (1 - minimumPower))) + minimumPower) * MaxPower;
-        if (power < MaxPower * minimumPower)
-            power = MaxPower * minimumPower;
-        else if (power > MaxPower)
+        power = ((Mathf.Abs(deltaMousePos.y) / (Screen.height / 2) * (1 - minimumPower)) + minimumPower) * MaxPower;
+        if (power > MaxPower)
             power = MaxPower;
 
         //if the mouse's Y position is above the original mouse position, then do a lob pass
         if (deltaMousePos.y > 0)
         {
             //Allow the the adjustment of the arc by scrolling the mouse wheel
-            lobAgjust += (Input.mouseScrollDelta.y) * lobScrollSpeed;
+            lobAgjust -= (Input.mouseScrollDelta.y) * lobScrollSpeed;
             if (lobAgjust < 0.01f)
                 lobAgjust = 0.01f;
             float myLob = lobConst * lobAgjust;
 
-            powerVector.y += (Input.mouseScrollDelta.y) * lobScrollSpeed;
-
             //calculate the lob direction
-            //powerVector.y += deltaMousePos.y / (Screen.height / 2 * myLob) * 2;
+            addDir.y = 1 + deltaMousePos.y / (Screen.height / 2) * myLob;
 
+            minDir.y = 0;
+            //powerVector = powerVector.normalized * Vector3.one.magnitude;
             //no floater of forward spin for a lob
             ballSpin.y = 1;
         }
@@ -134,26 +168,29 @@ public class PlayerShoot : MonoBehaviour {
                 ballSpin.y = 0;
             else if (ballSpin.y > (maxSpin * (1 + myLastVelocity.magnitude / runHitConst) + 1))
                 ballSpin.y = maxSpin * (1 + myLastVelocity.magnitude / runHitConst) + 1;
+            shotInfo.powerVector = Vector3.one;
         }
         //when the ball is lower, add an inherent arc to the hit
-        Vector3 addPower = Vector3.up * Mathf.Sign(powerVector.y) * Mathf.Exp(Mathf.Abs(player.vBall.rb.transform.position.y) * -1 / tau) / divisionFactor;
+        addDir += Vector3.up * Mathf.Exp(Mathf.Abs(player.vBall.rb.transform.position.y) * -1 / tau) / divisionFactor;
 
-        ShootCapsule shootInfo = new ShootCapsule(powerVector, power);
-        shootInfo.SetAdditivePower(addPower);
-        shootInfo.SetSpin(ballSpin);
-        vecPower = powerVector;
-        return shootInfo;
+        shotInfo.SetPower(power);
+        shotInfo.SetAdditiveDirection(addDir);
+        shotInfo.SetSpin(ballSpin);
+        shotInfo.SetMinimumDirection(minDir);
+        vecPower = shotInfo.powerVector;
+        return shotInfo;
     }
 
-    public Vector3 ResetPower()
+    public ShootCapsule ResetPower()
     {
-        return (Vector3.one);
+        ShootCapsule resetShootCapsule = new ShootCapsule(null, MaxPower * minimumPower);
+        return resetShootCapsule;
     }
 
-    public void ShootBall(VolleyballScript vBall, Vector3 aimDir, Vector3 power)
+    public void ShootBall(VolleyballScript vBall, ShootCapsule shotInfo)
     {
         vBall.rb.velocity = Vector3.zero;
-        vBall.Shoot(Vector3.Scale(aimDir,power), ballSpin, player.myParent);
+        vBall.Shoot(shotInfo.GetCalculateShot() * vBall.rb.mass, ballSpin, player.myParent);
         vBall.CollideWithPlayer(player);
         //if the court says that your ready to serve then tell them that you are currently
         //serving
