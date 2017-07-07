@@ -77,7 +77,8 @@ public class ShootCapsule
 }
 
 
-public class PlayerShoot : MonoBehaviour {
+public class PlayerShoot : MonoBehaviour, IInitializable
+{
 
     [Range(0, 25)]
     public float MaxPower = 12.5f;

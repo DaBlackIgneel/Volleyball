@@ -2,7 +2,8 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class PlayerAim : MonoBehaviour {
+public class PlayerAim : MonoBehaviour, IInitializable
+{
 
     public Vector3 aimSpot;
     [SerializeField]

@@ -13,19 +13,6 @@ public class DrawPath : MonoBehaviour {
     private float myAimingQuality;
     [SerializeField]
     private float pathSpread;
-    public float AimingQuality
-    {
-        set
-        {
-            if (myAimingQuality != value)
-            {
-                myAimingQuality = value;
-                myBurst[0].minCount = System.Convert.ToInt16(Mathf.Pow(myAimingQuality, 1.5f) * 200);
-                myBurst[0].maxCount = System.Convert.ToInt16(Mathf.Pow(myAimingQuality, 1.5f) * 200);
-                mySystem.emission.SetBursts(myBurst);
-            }
-        }
-    }
     ParticleSystem.Burst[] myBurst;
     ParticleSystem.Particle[] myParticle;
     List<Function> functionPath;
@@ -43,6 +30,17 @@ public class DrawPath : MonoBehaviour {
 		
 	}
 
+    void UpdateAimingQuality()
+    {
+        if (aimingDetail != myBurst[0].minCount)
+        {
+            short burstCount = System.Convert.ToInt16(Mathf.Pow(aimingDetail, 1.5f) * 200);
+            myBurst[0].minCount = burstCount;
+            myBurst[0].maxCount = burstCount;
+            mySystem.emission.SetBursts(myBurst);
+        }
+    }
+
     //starts the particle creations
     void GetParticles()
     {
@@ -50,7 +48,7 @@ public class DrawPath : MonoBehaviour {
         {
             mySystem.Play();
             mySystem.emission.GetBursts(myBurst);
-
+            UpdateAimingQuality();
             myParticle = new ParticleSystem.Particle[myBurst[0].minCount];
         }
 

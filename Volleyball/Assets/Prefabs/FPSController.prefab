@@ -77,6 +77,8 @@ GameObject:
   - component: {fileID: 54199077330131924}
   - component: {fileID: 136509959732860770}
   - component: {fileID: 114237129886297378}
+  - component: {fileID: 114712445248755342}
+  - component: {fileID: 114929235974077966}
   m_Layer: 11
   m_Name: PlayerBody
   m_TagString: PlayerBody
@@ -1088,6 +1090,43 @@ MonoBehaviour:
   maximumX: 45
   minimumY: -60
   maximumY: 20
+--- !u!114 &114712445248755342
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1315777919500408}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4fdb24665da9f2d4a840324f2fc9d613, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  MaxPower: 12.5
+  minimumPower: 0.1
+  lobConst: 0.45
+  smashConst: 2
+  lobAgjust: 1
+  maxSpin: 5
+  tau: 0.5
+  divisionFactor: 100
+  ballSpin: {x: 0, y: 0}
+  smashScrollSpeed: 0.5
+  lobScrollSpeed: 0.25
+  vecPower: {x: 0, y: 0, z: 0}
+  power: 1
+--- !u!114 &114929235974077966
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1315777919500408}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c0da2a78b10467142bb7e2614466b02b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  aimSpot: {x: 0, y: 0, z: 0}
+  aimDir: {x: 0, y: 0, z: 0}
 --- !u!114 &114946138605853460
 MonoBehaviour:
   m_ObjectHideFlags: 1

@@ -5,7 +5,7 @@ using UnityEngine;
 using UnityStandardAssets.Characters;
 
 public enum Side { Left = -1, Right = 1}
-
+public enum HitMode { Ready = 0, Aim = 1, Transition = 2, CalculatePower = 3}
 public struct PredictionPack
 {
     public float time;
@@ -23,7 +23,6 @@ public class SpecialAction : MonoBehaviour {
     public GameObject BallLandingIndicator;
 
     public Vector3 aimSpot;
-    //Vector3 spot;
 
     public float tester1;
     public float tester2;
@@ -43,8 +42,6 @@ public class SpecialAction : MonoBehaviour {
     public float smashConst = 2;
 
     public bool resetPosition;
-    public bool shoot;
-    public float squatSpeed;
     public float lobAgjust = 1f;
     public float maxSpin = 5;
     public Team team;
@@ -78,7 +75,6 @@ public class SpecialAction : MonoBehaviour {
 
     public bool block;
     bool blockOver;
-    public bool squat;
     bool dive;
     bool hitting;
     bool aimed;
@@ -99,13 +95,6 @@ public class SpecialAction : MonoBehaviour {
     float regFixedTimeDelta;
     [System.NonSerialized]
     public InGameUI gameUI;
-
-    bool Shoot
-    {
-        set
-        { /*if(value){ ShootBall(); }*/
-        }
-    }
 
     bool IgnoreCollision;    
     Vector3 pastBallVelocity;
@@ -137,23 +126,6 @@ public class SpecialAction : MonoBehaviour {
     [Range(0.01f, 2)]
     float lobScrollSpeed = .25f;
 
-    ParticleSystem mySystem;
-    ParticleSystem.Burst[] myBurst;
-    ParticleSystem.Particle[] myParticle;
-
-    CapsuleCollider myCollider;
-    CapsuleCollider myTrigger;
-
-    float squatThreshhold = 0.01f;
-    Vector2 originMeshHeightY;
-    Vector2 squatMeshHeightY;
-    Vector2 originColliderHeightY;
-    Vector2 squatColliderHeightY;
-    Vector2 originTriggerHeightY;
-    Vector2 squatTriggerHeightY;
-    Vector3 originalGroundPosition;
-    Vector3 squatGroundPosition;
-
     Vector3 originalPosition;
 
     Vector2 armWaveRotation;
@@ -181,8 +153,7 @@ public class SpecialAction : MonoBehaviour {
     List<ServeOfChoice> myServes;
     int serveChoice;
 
-    CapsuleCollider[] myColliders;
-    Vector3 startingPosition;
+    Vector3 ballStartingPosition;
 
     float HEIGHT = 2f;
     float SQUAT_HEIGHT = 1f;
@@ -197,12 +168,13 @@ public class SpecialAction : MonoBehaviour {
 
     int movementIndex;
     bool dontHit;
-    int hitMode = 0;
+    HitMode hitMode = HitMode.Ready;
     bool changeHitMode = true;
     bool changeChangeHitMode = true;
 
     PlayerAim playerAim;
     PlayerShoot playerShoot;
+    PlayerSquat playerSquat;
     Vector3 playerPower;
     ShootCapsule shootInfo;
     DrawPath shotPathDrawer;
@@ -215,7 +187,6 @@ public class SpecialAction : MonoBehaviour {
         //gets the object over this object in the object heirarchy
         myParent = transform.parent;
         armWaveRotation = Vector2.zero;
-        myColliders = myParent.parent.GetComponents<CapsuleCollider>();
         //the component that controlls the physics of this player
         rb = myParent.parent.GetComponent<Rigidbody>();
 
@@ -232,7 +203,49 @@ public class SpecialAction : MonoBehaviour {
         fpc = myParent.parent.Find("FirstPersonCamera").GetComponent<Camera>();
         tpc = myParent.parent.Find("ThirdPersonCamera").GetComponent<CameraFollow>();
 
-        //
+        //finds the court which is used to refer to all the game specifics
+        court = GameObject.FindGameObjectWithTag("CourtController").GetComponent<CourtScript>();
+
+        //finds the ball and ball actiioins
+        vBall = GameObject.FindGameObjectWithTag("Ball").GetComponent<VolleyballScript>();
+
+        //Gets the movement part of the player
+        movement = myParent.parent.GetComponent<PlayerMovement>();
+
+        //Gets the script that controlls the horizontal movement of the camera
+        m_MouseLook = myParent.parent.GetComponent<MyMouseLook>();
+
+        //gets the component that controlls the vertical movement of the camera
+        cameraLook = tpc.GetComponent<MyMouseLook>();
+
+        //if a person is controlling the player than lock the mouse to the center of the screen
+        if (isPlayer)
+            cameraLook.SetCursorLock(true);
+        //if a computer is controlling the player turn off the cameras and the player movement controlled by 
+        //the input
+        else
+        {
+            movement.relativeMovement = false;
+            fpc.gameObject.SetActive(false);
+            tpc.gameObject.SetActive(false);
+            m_MouseLook.enabled = false;
+            cameraLook.enabled = false;
+        }
+
+        //store the current time it takes for fixed update to run once
+        regFixedTimeDelta = Time.fixedDeltaTime;
+
+        //when you first start there is no cooldown to hit the ball
+        hitCooldownTimer = hitCooldown;
+
+        //gets a reference to the menu
+        gameUI = GameObject.FindGameObjectWithTag("EventSystem").GetComponent<InGameUI>();
+
+        originalPosition = transform.localPosition;
+
+        myLastVelocity = Vector3.zero;
+        ballStartingPosition = Vector3.zero;
+         
         try
         {
             playerAim = GetComponent<PlayerAim>();
@@ -261,72 +274,21 @@ public class SpecialAction : MonoBehaviour {
         {
             playerShoot.Initialize(this);
         }
-        //finds the court which is used to refer to all the game specifics
-        court = GameObject.FindGameObjectWithTag("CourtController").GetComponent<CourtScript>();
-
-        //finds the ball and ball actiioins
-        vBall = GameObject.FindGameObjectWithTag("Ball").GetComponent<VolleyballScript>();
-
-        //Gets the movement part of the player
-        movement = myParent.parent.GetComponent<PlayerMovement>();
-
-        //Gets the script that controlls the horizontal movement of the camera
-        m_MouseLook = myParent.parent.GetComponent<MyMouseLook>();
-
-        //gets the component that controlls the vertical movement of the camera
-        cameraLook = tpc.GetComponent<MyMouseLook>();
-
-        //Gets the the component that controlls the collision bounds
-        myCollider = myParent.parent.GetComponent<CapsuleCollider>();
-
-        //gets the component that controlls the ball collisions
-        //myTrigger = myParent.parent.GetComponent<CapsuleCollider>();
-        //if (isPlayer)
-            myTrigger = myColliders[myColliders.Length - 1];
-
-        //if a person is controlling the player than lock the mouse to the center of the screen
-        if (isPlayer)
-            cameraLook.SetCursorLock(true);
-        //if a computer is controlling the player turn off the cameras and the player movement controlled by 
-        //the input
-        else
+        //
+        try
         {
-            movement.relativeMovement = false;
-            fpc.gameObject.SetActive(false);
-            tpc.gameObject.SetActive(false);
-            m_MouseLook.enabled = false;
-            cameraLook.enabled = false;
+            playerSquat = GetComponent<PlayerSquat>();
+            if (playerSquat == null)
+                playerSquat = gameObject.AddComponent<PlayerSquat>();
         }
-
-        //store the current time it takes for fixed update to run once
-        regFixedTimeDelta = Time.fixedDeltaTime;
-
-        //when you first start there is no cooldown to hit the ball
-        hitCooldownTimer = hitCooldown;
-
-        //the component that controlls the amount of particles emmitted for the aiming
-        mySystem = myParent.parent.GetComponentInChildren<ParticleSystem>();
-        myBurst = new ParticleSystem.Burst[1];
-
-        //the original heights for the mesh, collider, and collider for the ball
-        originColliderHeightY = new Vector2(myCollider.height, myCollider.center.y);
-        originMeshHeightY = new Vector2(transform.localScale.y, transform.localPosition.y);
-        originTriggerHeightY = new Vector2(myTrigger.height, myTrigger.center.y);
-        originalGroundPosition = movement.ground.localPosition;
-
-        //the predefined crouch heights for the mesh, collider, and the collider for the ball
-        squatColliderHeightY = new Vector2(1,1f);
-        squatMeshHeightY = new Vector2(0.5f, 0.5f);
-        //squatTriggerHeightY = new Vector2((originMeshHeightY.x - squatMeshHeightY.x + 2) * originTriggerHeightY.x, originTriggerHeightY.y - 1.5f);
-        squatGroundPosition = originalGroundPosition + Vector3.up *.3f;
-        squatTriggerHeightY = new Vector2(originTriggerHeightY.x, originTriggerHeightY.y-.75f);
-        //gets a reference to the menu
-        gameUI = GameObject.FindGameObjectWithTag("EventSystem").GetComponent<InGameUI>();
-
-        originalPosition = transform.localPosition;
-
-        myLastVelocity = Vector3.zero;
-        startingPosition = Vector3.zero;
+        catch (System.Exception e)
+        {
+            playerSquat = gameObject.AddComponent<PlayerSquat>();
+        }
+        finally
+        {
+            playerSquat.Initialize(this);
+        }
     }
 
     // Update is called once per frame
@@ -400,7 +362,7 @@ public class SpecialAction : MonoBehaviour {
         }
 
         //if your squatted then unsquat yourself
-        Squat();
+        playerSquat.Squat();
         //allow yourself to start blocking
         Block();
     }
@@ -555,7 +517,7 @@ public class SpecialAction : MonoBehaviour {
     {
         Path myPath = LocationRelation.GetMovement(this);
         movement.goToRotation = false;
-        squat = false;
+        playerSquat.squat = false;
 
         if (movement.isGrounded)
             block = false;
@@ -719,7 +681,7 @@ public class SpecialAction : MonoBehaviour {
     void ReturnToPosition()
     {
         movement.faceNet = true;
-        squat = false;
+        playerSquat.squat = false;
         if (movement.isGrounded)
             block = false;
         movement.MoveTowards(court.GetPosition(currentPosition, currentSide, this));
@@ -760,7 +722,7 @@ public class SpecialAction : MonoBehaviour {
             Stop();
         else
             movement.MoveTowards(landing, shouldWalk);
-        squat = shouldSquat;
+        playerSquat.squat = shouldSquat;
         if (!isPlayer)
         {
             if (GameObject.Find(BallLandingIndicator.name) == null)
@@ -773,7 +735,7 @@ public class SpecialAction : MonoBehaviour {
     void Stop()
     {
         movement.Stop();
-        squat = false;
+        playerSquat.squat = false;
     }
 
     //teleports to a position
@@ -1165,128 +1127,39 @@ public class SpecialAction : MonoBehaviour {
         }
     }
 
-    //changes the height of the player when you want to squat and returns
-    //the height back to normal when you don't want to squat
-    void Squat()
-    {
-        //print(Input.GetAxis("Squat"));
-        float hittingOffset;
-        hittingOffset = hitting ? myParent.transform.position.y : 0;
-        if(dive || (squat && !movement.isWalking))
-        {
-            Dive();
-        }
-        else
-        {
-            if (squat)
-            {
-                if(myCollider.center.y > squatColliderHeightY.y)
-                {
-                    myCollider.height =  squatColliderHeightY.x;
-                    myCollider.center = new Vector3(myCollider.center.x, squatColliderHeightY.y, myCollider.center.z);
-                    transform.localScale = new Vector3(transform.localScale.x, squatMeshHeightY.x, transform.localScale.z);
-                    transform.localPosition = new Vector3(transform.localPosition.x, squatMeshHeightY.y + hittingOffset, transform.localPosition.z);
-                    myTrigger.height = squatTriggerHeightY.x;
-                    myTrigger.center = new Vector3(myTrigger.center.x, squatTriggerHeightY.y, myTrigger.center.z);
-                    movement.ground.localPosition = squatGroundPosition;
-                }
-                //else if (Mathf.Abs(myCollider.height - squatColliderHeightY.x) > squatThreshhold)
-                {
-                    myCollider.height = Mathf.Lerp(myCollider.height, squatColliderHeightY.x, squatSpeed);
-                    myCollider.center = Vector3.Lerp(myCollider.center, new Vector3(myCollider.center.x, /*squatColliderHeightY.y*/1, myCollider.center.z), squatSpeed);
-                    transform.localScale = Vector3.Lerp(transform.localScale, new Vector3(transform.localScale.x, squatMeshHeightY.x, transform.localScale.z), squatSpeed);
-                    transform.localPosition = Vector3.Lerp(transform.localPosition, new Vector3(transform.localPosition.x, squatMeshHeightY.y + hittingOffset, transform.localPosition.z), squatSpeed);
-                    myTrigger.height = Mathf.Lerp(myTrigger.height, squatTriggerHeightY.x, squatSpeed);
-                    myTrigger.center = Vector3.Lerp(myTrigger.center, new Vector3(myTrigger.center.x, squatTriggerHeightY.y, myTrigger.center.z), squatSpeed);
-                    movement.ground.localPosition = Vector3.Lerp(movement.ground.localPosition, squatGroundPosition, squatSpeed);
-
-                }
-
-            }
-            else
-            {
-
-                if (myCollider.center.y < originColliderHeightY.y)
-                {
-                    myCollider.height = originColliderHeightY.x;
-                    myCollider.center = new Vector3(myCollider.center.x, originColliderHeightY.y, myCollider.center.z);
-                    transform.localScale = new Vector3(transform.localScale.x, originMeshHeightY.x, transform.localScale.z);
-                    transform.localPosition = new Vector3(transform.localPosition.x, originMeshHeightY.y + hittingOffset, transform.localPosition.z);
-                    myTrigger.height = originTriggerHeightY.x;
-                    myTrigger.center = new Vector3(myTrigger.center.x, originTriggerHeightY.y, myTrigger.center.z);
-                    movement.ground.localPosition = originalGroundPosition;
-                }
-                else if (Mathf.Abs(myCollider.height - originColliderHeightY.x) > squatThreshhold)
-                {
-                    myCollider.height = Mathf.Lerp(myCollider.height, originColliderHeightY.x, squatSpeed);
-                    myCollider.center = Vector3.Lerp(myCollider.center, new Vector3(myCollider.center.x, originColliderHeightY.y, myCollider.center.z), squatSpeed);
-                    transform.localScale = Vector3.Lerp(transform.localScale, new Vector3(transform.localScale.x, originMeshHeightY.x, transform.localScale.z), squatSpeed);
-                    transform.localPosition = Vector3.Lerp(transform.localPosition, new Vector3(transform.localPosition.x, originMeshHeightY.y + hittingOffset, transform.localPosition.z), squatSpeed);
-                    myTrigger.height = Mathf.Lerp(myTrigger.height, originTriggerHeightY.x, squatSpeed);
-                    myTrigger.center = Vector3.Lerp(myTrigger.center, new Vector3(myTrigger.center.x, originTriggerHeightY.y, myTrigger.center.z), squatSpeed);
-                    movement.ground.localPosition = Vector3.Lerp(movement.ground.localPosition, originalGroundPosition, squatSpeed);
-                }
-
-            }
-        }
-        
-    }
-
-    void Dive()
-    {
-        float hittingOffset;
-        hittingOffset = hitting ? myParent.transform.position.y : 0;
-        if (squat && !movement.isWalking)
-        {
-            
-            float relativeAngle = (Mathf.Atan2(rb.velocity.x, rb.velocity.z) * Mathf.Rad2Deg - myParent.parent.eulerAngles.y);
-            relativeAngle -= ((int)(relativeAngle / 360)) * 360;
-            relativeAngle *= -1;
-            Vector3 tempAxis = Vector3.up *  relativeAngle + Vector3.right * (Mathf.Atan2(rb.velocity.x, rb.velocity.z)) * Mathf.Rad2Deg + Vector3.forward * myParent.parent.eulerAngles.y;
-            Vector3 rotationAxis = Vector3.right * Mathf.Cos(relativeAngle * Mathf.Deg2Rad) + Vector3.forward * Mathf.Sin(relativeAngle * Mathf.Deg2Rad);
-            myParent.localEulerAngles = (rotationAxis).normalized * 60;
-            dive = true;
-        }
-        else
-        {
-            myParent.localEulerAngles = Vector3.zero;
-            
-            if(myParent.localEulerAngles.x + myParent.localEulerAngles.z < 1f)
-            {
-                dive = false;
-            }
-        }
-        /*if (Mathf.Abs(myCollider.height - originColliderHeightY.x) > squatThreshhold)
-        {
-            myCollider.height = Mathf.Lerp(myCollider.height, originColliderHeightY.x, squatSpeed);
-            myCollider.center = Vector3.Lerp(myCollider.center, new Vector3(myCollider.center.x, originColliderHeightY.y, myCollider.center.z), squatSpeed);
-            transform.localScale = Vector3.Lerp(transform.localScale, new Vector3(transform.localScale.x, originMeshHeightY.x, transform.localScale.z), squatSpeed);
-            transform.localPosition = Vector3.Lerp(transform.localPosition, new Vector3(transform.localPosition.x, originMeshHeightY.y + hittingOffset, transform.localPosition.z), squatSpeed);
-            myTrigger.height = Mathf.Lerp(myTrigger.height, originTriggerHeightY.x, squatSpeed);
-            myTrigger.center = Vector3.Lerp(myTrigger.center, new Vector3(myTrigger.center.x, originTriggerHeightY.y, myTrigger.center.z), squatSpeed);
-        }*/
-    }
-
     //gets all the player input
     void GetInput()
     {
         if (isPlayer)
         {
             block = (Input.GetAxisRaw("Block") != 0);
-            squat = (Input.GetAxis("Squat") > 0.75f);
+            playerSquat.squat = (Input.GetAxis("Squat") > 0.75f);
             stop = (Input.GetButtonDown("Cancel") || Input.GetButton("Cancel")) && !hitting;
             hit = Input.GetButtonDown("Fire") || Input.GetButton("Fire");
             if (hitting || hittable)
             {
-                if ((Input.GetButtonDown("Fire") || Input.GetButton("Fire")) && changeHitMode)// && changeChangeHitMode)
+                if ((Input.GetButtonDown("Fire") || Input.GetButton("Fire")) && changeHitMode)
                 {
                     hitMode++;
                     changeHitMode = false;
                 }
-                if ((Input.GetButtonUp("Fire") || !Input.GetButton("Fire")) && !changeHitMode)// && !changeChangeHitMode)
+                if ((Input.GetButtonUp("Fire") || !Input.GetButton("Fire")) && !changeHitMode)
                 {
                     changeHitMode = true;
                 }
+                if (Input.GetButtonDown("Cancel"))
+                {
+                    if(hitMode == HitMode.CalculatePower)
+                    {
+                        hitMode = HitMode.Transition;
+                        cancelAim = true;
+                    }
+                    else if(hitMode == HitMode.Aim)
+                    {
+                        ReturnSpeedToNormal();
+                    }
+                }
+
             }
             shootUp = Input.GetMouseButton(2);
             //checks if your running
@@ -1298,14 +1171,6 @@ public class SpecialAction : MonoBehaviour {
             
     }
     #endregion
-
-    IEnumerator EnableChangeHitMode(bool value)
-    {
-        yield return new WaitForSeconds(0.1f);
-        changeHitMode = value;
-        yield return null;
-    }
-
 
     #region court methods
     //turns the movement of the player on or off
@@ -1335,9 +1200,9 @@ public class SpecialAction : MonoBehaviour {
     public void EndRally()
     {
         block = false;
-        squat = false;
+        playerSquat.squat = false;
         Block();
-        Squat();
+        playerSquat.Squat();
         ReturnSpeedToNormal();
         movement.Stop();
         movement.enabled = false;
@@ -1361,10 +1226,10 @@ public class SpecialAction : MonoBehaviour {
         Cursor.visible = true;
 
         //get the position of the ball for the shoot path simulation
-        startingPosition = vBall.rb.position;
+        ballStartingPosition = vBall.rb.position;
 
         //if you are not finished aiming than aim the ball
-        if (hitMode == 1)//!aimed)
+        if (hitMode == HitMode.Aim)//!aimed)
         {
             //Reset the power direction;
             shootInfo = playerShoot.ResetPower();
@@ -1374,28 +1239,38 @@ public class SpecialAction : MonoBehaviour {
             //set the reference position used for the power/spin calculations
             originMousePos = Input.mousePosition;
         }
-        else if ((hitMode == 2) && !cancelAim)
+        else if (hitMode == HitMode.Transition)
         {
-            if (isPlayer)
+            if (!cancelAim)
+            {
                 SetAimed(true);
+
+                //store the old ball velocity so that when you cancel your shot, the ball continues moving
+                pastBallVelocity = vBall.rb.velocity;
+
+                //stop the ball from moving
+                vBall.ResetMotion();
+                hitMode = HitMode.CalculatePower;
+            }
             else
-                aimed = true;
+            {
+                SetAimed(false);
 
-            //store the old ball velocity so that when you cancel your shot, the ball continues moving
-            pastBallVelocity = vBall.rb.velocity;
+                //store the old ball velocity so that when you cancel your shot, the ball continues moving
+                vBall.rb.velocity = pastBallVelocity;
 
-            //stop the ball from moving
-            vBall.ResetMotion();
-            hitMode = 3;
+                hitMode = HitMode.Aim;
+                cancelAim = false;
+            }
         }
         //if you are finished aiming, then start the power calculations
-        else if (hitMode == 3)//aimed)
+        else if (hitMode == HitMode.CalculatePower)//aimed)
         {
             //calculates the power used to hit the ball
             shootInfo = playerShoot.UserCalculatePower(originMousePos, shootInfo, myLastVelocity);
             playerPower = shootInfo.powerVector;
             //if you let go of the left click then return speed back to normal and hit the ball
-            if (!hit || !isPlayer)//Input.GetButtonUp("Fire") || !isPlayer || !Input.GetButton("Fire"))
+            if (!hit || !isPlayer)
             {
 
                 playerShoot.ShootBall(vBall, shootInfo);
@@ -1459,21 +1334,7 @@ public class SpecialAction : MonoBehaviour {
                 {
                     HitBallStraightUp();
                 }
-
-                //makes it so that the player body doesn't rotate while your aiming
-                /*if (isPlayer)
-                {
-                    transform.parent = null;
-                    movement.enabled = false;
-
-                }*/
-
-
-
-                //tell the ball that you where the last player to hit it
-
             }
-
         }
     }
 
@@ -1511,9 +1372,6 @@ public class SpecialAction : MonoBehaviour {
     #endregion
 
     #region Reseting
-
-
-
     //returns the speed to normal and resets all hitting variabls
     void ReturnSpeedToNormal()
     {
@@ -1529,7 +1387,7 @@ public class SpecialAction : MonoBehaviour {
 
         //starts the cooldown for hiting the ball
         hitTime = 0;
-        hitMode = 0;
+        hitMode = HitMode.Ready;
         hitCooldownTimer = 0;
 
         //Clear the information used for shooting the ball
@@ -1574,11 +1432,11 @@ public class SpecialAction : MonoBehaviour {
     void PredictShot()
     {
         Function shotFunction = new Function(null, shootInfo.GetCalculateShot());
-        shotPathDrawer.SetPathSpread(shootInfo.power / playerShoot.MaxPower * 7 * 30);
+        shotPathDrawer.SetPathSpread(shootInfo.power / playerShoot.MaxPower * 7*30);
         shotPathDrawer.SetFunction(shotFunction);
         if(!shotPathDrawer.FunctionExists(Function.Gravity()))
             shotPathDrawer.AddGravity();
-        shotPathDrawer.particleStartPosition = startingPosition;
+        shotPathDrawer.particleStartPosition = ballStartingPosition;
         shotPathDrawer.SimulatePath();
     }
     #endregion
