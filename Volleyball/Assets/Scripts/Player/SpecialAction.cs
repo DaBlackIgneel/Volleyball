@@ -1432,10 +1432,12 @@ public class SpecialAction : MonoBehaviour {
     void PredictShot()
     {
         Function shotFunction = new Function(null, shootInfo.GetCalculateShot());
+        Function spinFunction = new Function(null, null, shootInfo.GetCalculatedSpin(transform.forward));
         shotPathDrawer.SetPathSpread(shootInfo.power / playerShoot.MaxPower * 7*30);
         shotPathDrawer.SetFunction(shotFunction);
         if(!shotPathDrawer.FunctionExists(Function.Gravity()))
             shotPathDrawer.AddGravity();
+        shotPathDrawer.AddFunction(spinFunction);
         shotPathDrawer.particleStartPosition = ballStartingPosition;
         shotPathDrawer.SimulatePath();
     }

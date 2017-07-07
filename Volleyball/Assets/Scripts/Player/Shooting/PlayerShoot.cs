@@ -40,6 +40,17 @@ public class ShootCapsule
         return (additiveDirection + calculatedDirection).normalized;
     }
 
+    public Vector3 GetCalculatedSpin(Vector3 forward)
+    {
+        Vector3 spin = Vector3.Scale(this.spin - Vector3.up, (new Vector3(1, -1, 1)));
+        if (spin.y > 0)
+            spin.y = 0;
+        Vector3 direction = Vector3.Scale(forward, new Vector3(1, 0, 1));
+        Vector3 calculatedSpin = Vector3.Cross(Vector3.up, direction).normalized * spin.x;
+        calculatedSpin.y = spin.y;
+        return calculatedSpin;
+    }
+
     public void SetAdditiveDirection(Vector3 addDirection)
     {
         additiveDirection = addDirection;
@@ -190,8 +201,7 @@ public class PlayerShoot : MonoBehaviour, IInitializable
 
     public void ShootBall(VolleyballScript vBall, ShootCapsule shotInfo)
     {
-        vBall.rb.velocity = Vector3.zero;
-        vBall.Shoot(shotInfo.GetCalculateShot() * vBall.rb.mass, ballSpin, player.myParent);
+        vBall.Shoot(shotInfo, player.myParent);
         vBall.CollideWithPlayer(player);
         //if the court says that your ready to serve then tell them that you are currently
         //serving

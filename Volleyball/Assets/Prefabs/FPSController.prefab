@@ -79,6 +79,7 @@ GameObject:
   - component: {fileID: 114237129886297378}
   - component: {fileID: 114712445248755342}
   - component: {fileID: 114929235974077966}
+  - component: {fileID: 114978709363603994}
   m_Layer: 11
   m_Name: PlayerBody
   m_TagString: PlayerBody
@@ -1010,14 +1011,11 @@ MonoBehaviour:
   currentSide: -1
   smashConst: 2
   resetPosition: 0
-  shoot: 0
-  squatSpeed: 0.1
   lobAgjust: 1
   maxSpin: 5
   distanceToBallLanding: {x: 0, y: 0, z: 0}
   armWaveSensitivity: 5
   block: 0
-  squat: 0
   hitTime: 0
   ballSpin: {x: 0, y: 0}
   smashScrollSpeed: 0.5
@@ -1105,8 +1103,8 @@ MonoBehaviour:
   minimumPower: 0.1
   lobConst: 0.45
   smashConst: 2
-  lobAgjust: 1
-  maxSpin: 5
+  lobAgjust: 7
+  maxSpin: 7.5
   tau: 0.5
   divisionFactor: 100
   ballSpin: {x: 0, y: 0}
@@ -1152,6 +1150,19 @@ MonoBehaviour:
   maximumX: 360
   minimumY: -60
   maximumY: 80
+--- !u!114 &114978709363603994
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1315777919500408}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eecfa342bdb85944fb58d006c0a7cd52, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  squat: 0
+  squatSpeed: 0.1
 --- !u!124 &124048352774842442
 Behaviour:
   m_ObjectHideFlags: 1

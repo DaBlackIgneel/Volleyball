@@ -50,6 +50,7 @@ public class VolleyballScript : MonoBehaviour {
 
     bool endServe;
     bool lastHitByServer;
+    bool shot;
 
     Vector3 right;
 	// Use this for initialization
@@ -88,7 +89,8 @@ public class VolleyballScript : MonoBehaviour {
     void FixedUpdate()
     {
         //Adds the affect of spin onto the velocity of the ball
-        //AddSpin();
+        if(shot)
+            AddSpin();
 
         //continue to change the air density map for the jump floater
         if(currentAdditions >= maxAdditions)
@@ -99,14 +101,13 @@ public class VolleyballScript : MonoBehaviour {
             samePlayerCount += Time.fixedDeltaTime;
     }
 
-
-    
-
     //Adds an initial force to the ball, and sets up no spin
-    public void Shoot(Vector3 force, Transform reference)
+    public void Shoot(ShootCapsule shotInfo, Transform reference)
     {
-        SetSpin(Vector2.up, reference);
-        rb.AddForce(force,ForceMode.Impulse);
+        ResetMotion();
+        rb.AddForce(shotInfo.GetCalculateShot() * rb.mass, ForceMode.Impulse);
+        SetSpin(shotInfo, reference);
+
         if (endServe)
         {
             court.serve = false;
@@ -114,73 +115,18 @@ public class VolleyballScript : MonoBehaviour {
         }
     }
 
-    //Adds an initial force to the ball, and sets up a spin
-    public void Shoot(Vector3 force, Vector2 spin, Transform reference)
-    {
-        Shoot(force, reference);
-        SetSpin(spin, reference);
-    }
-
     //Adds a spin on the ball relative to the player, and 
     //adds the calculable spin to the ball
-    void SetSpin(Vector2 spin, Transform reference)
+    void SetSpin(ShootCapsule shotInfo, Transform reference)
     {
-        this.spin = spin;
-        right = reference.right; 
-        currentAdditions = 0;
-
-        rb.AddTorque((reference.up * spin.x * 1 + reference.right * spin.y) * torqueConst);
+        spin = shotInfo.GetCalculatedSpin(reference.forward);
+        shot = true;
+        rb.AddTorque((reference.up * shotInfo.spin.x + reference.right * shotInfo.spin.y) * torqueConst);
     }
 
-    //adds spin or floater moveablilty to the ball
     void AddSpin()
     {
-        //max amount of force the spin can add onto the ball
-        if (currentAdditions < maxAdditions)
-        {
-            //initialize the spin velocity variable
-            Vector3 spinAddition = Vector3.zero;
-
-            //if your not doing a floater calculate the spin
-            if (spin.y >= 1)
-            {
-                spinAddition.y = -SpinCalculator(ref spin.y, Direction.Y);
-                spinAddition.x = SpinCalculator(ref spin.x, Direction.X);
-            }
-            //if you are doing a floater calculate the floater air density affect
-            else if (spin.y < 1)
-            {
-                spinAddition.x = GetFloater(currentAdditions, Direction.X);
-                spinAddition.y = GetFloater(currentAdditions, Direction.Y);
-            }
-
-            //add the spin vector to the current velocity
-            //rb.velocity += spinAddition.y * Vector3.up + spinAddition.x * right;
-            rb.AddForce((spinAddition.y * Vector3.up + spinAddition.x * right) * rb.mass, ForceMode.Impulse);
-            print(rb.velocity + ", " + transform.position + ", " + Time.fixedDeltaTime);
-            currentAdditions++;
-        }
-    }
-
-    float SpinCalculator(ref float mySpin, Direction dimension)
-    {
-        //exponentially increase the effect of the spin
-        //exponent is very close to 1 so the effect is small but noticable
-        //makes it so that at around the peak height of the ball, the spin
-        //starts to make a big affect on the position of the ball
-        if(dimension == Direction.Y)
-        {
-            mySpin--;
-            mySpin *= spinAddConst;
-            mySpin++;
-            return (mySpin - 1);// / 100f;
-        }
-        else
-        {
-            mySpin *= spinAddConst;
-            return mySpin;// / 100f;
-        }
-        
+        rb.AddForce(spin, ForceMode.Acceleration);
     }
 
     public int GetSideTouches(Side side)
@@ -351,6 +297,7 @@ public class VolleyballScript : MonoBehaviour {
 
     void OnCollisionEnter(Collision other)
     {
+        RemoveSpin();
         //if currently colliding with the player then go through all the player collision checks
         if (other.transform.tag == "PlayerArms" || other.transform.tag == "PlayerBody")
         {
@@ -383,14 +330,15 @@ public class VolleyballScript : MonoBehaviour {
             }
             currentAdditions = maxAdditions;
         }
+        
     }
 
     
 
     //reset the spin of the ball
-    void ZeroMotion()
+    void RemoveSpin()
     {
         spin = Vector2.up;
-        currentAdditions = maxAdditions;
+        shot = false;
     }
 }
