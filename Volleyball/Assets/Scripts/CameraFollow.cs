@@ -13,8 +13,11 @@ public class CameraFollow : MonoBehaviour {
     public float zoomSensitivity = .5f;
     public float zoomSmooth = .1f;
     public float followSmooth = .25f;
-
     public Vector3 baseReferencePosition;
+
+    [System.NonSerialized]
+    public Camera camera;
+
     Vector3 referencePosition;
     [SerializeField]
     Vector3 basePosition;
@@ -38,6 +41,7 @@ public class CameraFollow : MonoBehaviour {
 
         //This is the point that the camera rotates around
         pivot = new GameObject("CameraPivot");
+        camera = GetComponent<Camera>();
         pivot.transform.parent = transform.parent;
         pivot.transform.localPosition = transform.localPosition + baseReferencePosition;
 

@@ -4,15 +4,13 @@ using UnityEngine;
 
 public class LocationRelation : MonoBehaviour {
 
-    public CourtDimensions.Section tempSection = CourtDimensions.Section.BackLeft;
-    public Side tempSide = Side.Left;
     public Vector3 aimSpot;
     public BallToPlayer personBallIsGoingTo
     {
         get;
         private set;
     }
-    public Dictionary<Side, SpecialAction> ClosestPlayerToBall
+    public Dictionary<Side, BallToPlayer> ClosestPlayerToBall
     {
         get { return ballHandler; }
     }
@@ -28,11 +26,29 @@ public class LocationRelation : MonoBehaviour {
     {
         public SpecialAction player;
         public float angle;
+        public Vector3 distanceToBallLanding;
 
         public BallToPlayer(SpecialAction p, float a)
         {
             player = p;
             angle = a;
+        }
+        public BallToPlayer(SpecialAction p, Vector3 d)
+        {
+            player = p;
+            distanceToBallLanding = d;
+        }
+
+        public void Set(SpecialAction p, float a)
+        {
+            player = p;
+            angle = a;
+        }
+
+        public void Set(SpecialAction p, Vector3 d)
+        {
+            player = p;
+            distanceToBallLanding = d;
         }
     }
 
@@ -40,9 +56,8 @@ public class LocationRelation : MonoBehaviour {
     float ballTime;
     CourtScript court;
     VolleyballScript vBall;
-    CourtDimensions.Rectangle aimingSection;
     GameObject temp;
-    Dictionary<Side, SpecialAction> ballHandler;
+    Dictionary<Side, BallToPlayer> ballHandler;
     Side currentAttack;
     Random rand;
     // Use this for initialization
@@ -50,33 +65,16 @@ public class LocationRelation : MonoBehaviour {
         court = GameObject.FindGameObjectWithTag("CourtController").GetComponent<CourtScript>();
         vBall = GameObject.FindGameObjectWithTag("Ball").GetComponent<VolleyballScript>();
         rand = new Random();
-        aimingSection = court.dimensions.CourtSection(tempSide, tempSection);
-        temp = GameObject.CreatePrimitive(PrimitiveType.Cube);
-        temp.tag = "Court";
-        temp.layer = LayerMask.NameToLayer("Ground");
-        ballHandler = new Dictionary<Side, SpecialAction>();
+        ballHandler = new Dictionary<Side, BallToPlayer>();
         ballHandler.Add(Side.Left, null);
         ballHandler.Add(Side.Right, null);
         StartCoroutine("UpdateClosestPlayerToBall");
         StartCoroutine("FindPlayerBallGoingTo");
     }
-	
-	// Update is called once per frame
-	void Update () {
-        aimingSection = court.dimensions.BackLineRect(tempSide);
-        temp.transform.localScale = aimingSection.Dimension() + Vector3.up * .1f;
-        temp.transform.position = aimingSection.Center();
-
-    }
 
     void OnDestroy()
     {
         StopAllCoroutines();
-    }
-
-    void FixedUpdate()
-    {
-        
     }
 
     IEnumerator FindPlayerBallGoingTo()
@@ -115,14 +113,6 @@ public class LocationRelation : MonoBehaviour {
                 }
             }
         }
-        
-        /*foreach(SpecialAction person in prospectivePerson)
-        {
-            //print(person.currentPosition + ", " + Vector3.Angle(Vector3.ProjectOnPlane(person.transform.position - vBall.transform.position, Vector3.up), direction));
-        }
-        print(direction);*/
-        //if(prospectivePerson.Count > 0)
-            //print(prospectivePerson[0].currentPosition + ", " + Vector3.Angle(Vector3.ProjectOnPlane(prospectivePerson[0].transform.position - vBall.transform.position, Vector3.up), direction));
         if (prospectivePerson.Count > 0)
             return prospectivePerson[0];
         else
@@ -136,34 +126,33 @@ public class LocationRelation : MonoBehaviour {
             foreach (SpecialAction p in court.Players[tempSide])
             {
                 Vector3 distance = MovePositionAtMaxHeight(2, p.myMovement) - p.myMovement.transform.position;
-                p.distanceToBallLanding = distance;
+                //p.distanceToBallLanding = distance;
                 try
                 {
                     if (ballHandler[tempSide] != null)
                     {
-                        if (ballHandler[tempSide].distanceToBallLanding.magnitude > p.distanceToBallLanding.magnitude && (IsValidPlayer(p)))
+                        if (ballHandler[tempSide].distanceToBallLanding.magnitude > distance.magnitude && (IsValidPlayer(p)))
                         {
-                            ballHandler[tempSide] = p;
+                            ballHandler[tempSide].Set(p, distance);
                         }
                     }
                     else
                     {
-                        ballHandler[tempSide] = p;
+                        ballHandler[tempSide] = new BallToPlayer(p, distance);
                     }
                 }
                 catch (System.NullReferenceException e)
                 {
-                    ballHandler[tempSide] = p;
+                    ballHandler[tempSide] = new BallToPlayer(p, distance);
                     print(e.Message);
                 }
                 catch (KeyNotFoundException e)
                 {
-                    ballHandler.Add(tempSide, p);
+                    ballHandler.Add(tempSide, new BallToPlayer(p, distance));
                     print(e.Message);
                 }
             }
-            //print(ballHandler[tempSide].currentPosition);
-            return ballHandler[tempSide];
+            return ballHandler[tempSide].player;
         }
         else
             return null;
@@ -177,8 +166,6 @@ public class LocationRelation : MonoBehaviour {
             {
                 FindClosestPlayerToBall(side);
             }
-            /*FindClosestPlayerToBall(Side.Left);
-            FindClosestPlayerToBall(Side.Right);*/
             yield return new WaitForSeconds(.05f);
         }
     }
@@ -187,7 +174,11 @@ public class LocationRelation : MonoBehaviour {
     {
         try
         {
-            return Vector3.Scale(court.currentStrategy[player.currentSide][StrategyType.Offense].GetPassLocation(player.vBall.GetSideTouches(player.currentSide), player), new Vector3((int)player.currentSide, 1,(int)player.currentSide));
+            Vector3 aimSpot = Vector3.Scale(court.teams[player.currentSide].GetStrategy(StrategyType.Offense).GetPassLocation(player.vBall.GetSideTouches(player.currentSide), player), new Vector3((int)player.currentSide, 1, (int)player.currentSide));
+            if (aimSpot != null)
+                return aimSpot;
+            else
+                return AimSpot(player.currentSide);
         }
         catch
         {
@@ -199,6 +190,12 @@ public class LocationRelation : MonoBehaviour {
     public Vector3 AimSpot(Side currentSide)
     {
         CourtDimensions.Rectangle mySpot = court.dimensions.BackLineRect(currentSide);
+        aimSpot = mySpot.upperRightCorner - new Vector3(Random.Range(0, mySpot.Dimension().x), -.2f, Random.Range(0, mySpot.Dimension().z));
+        return aimSpot;
+    }
+
+    public Vector3 AimSpot(CourtDimensions.Rectangle mySpot)
+    {
         aimSpot = mySpot.upperRightCorner - new Vector3(Random.Range(0, mySpot.Dimension().x), -.2f, Random.Range(0, mySpot.Dimension().z));
         return aimSpot;
     }
@@ -216,30 +213,24 @@ public class LocationRelation : MonoBehaviour {
 
     public Pass AimSpotInfo(SpecialAction player)
     {
-        //try
+        if (player.vBall.GetSideTouches(player.currentSide) < court.teams[player.currentSide].GetStrategy(StrategyType.Offense).GetMaxPassNumber())
         {
-            if (player.vBall.GetSideTouches(player.currentSide) < 2)
-                return court.currentStrategy[player.currentSide][StrategyType.Offense].GetPassInformation(player.vBall.GetSideTouches(player.currentSide), player);
-            else
-            {
-                Pass temp = new Pass();
-                temp.position = CourtScript.MaxNumberOfPlayers + 1;
-                temp.speed = PassSpeed.Quick;
-                return temp;
-            }
+            Pass passInfo = court.teams[player.currentSide].GetStrategy(StrategyType.Offense).GetPassInformation(player.vBall.GetSideTouches(player.currentSide), player);
+            return passInfo;
         }
-        /*catch (System.Exception e)
+        else
         {
-            print(e.Message);
-            return new Pass(PassType.Location,aimingSection.upperRightCorner - new Vector3(Random.Range(0, aimingSection.Dimension().x), -.2f, Random.Range(0, aimingSection.Dimension().z)));
-            
-        }*/
+            Pass temp = new Pass();
+            temp.position = CourtScript.MaxNumberOfPlayers + 1;
+            temp.speed = PassSpeed.Quick;
+            return temp;
+        }
 
     }
 
     public static Path GetMovement(SpecialAction player)
     {
-        return player.Court.currentStrategy[player.currentSide][StrategyType.Offense].movementPath[player.currentPosition-1];
+        return player.Court.teams[player.currentSide].GetStrategy(StrategyType.Offense).movementPath[player.currentPosition-1];
     }
 
     public static Vector3 StrategyLocationToCourt(Vector3 loc, Side currentSide)
@@ -311,7 +302,6 @@ public class LocationRelation : MonoBehaviour {
         Vector3 startPos = caller.transform.position + fallTime * caller.rb.velocity;
         Vector3 distance = targetPosition - startPos;
         distance.y = 0;
-        //direction.Normalize();
         float time = distance.magnitude / caller.sprintSpeed + fallTime;
         return time;
     }

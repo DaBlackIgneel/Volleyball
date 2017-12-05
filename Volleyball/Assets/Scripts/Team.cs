@@ -13,6 +13,8 @@ public class Team
     public int numberOfActivePlayers { get { return players.Count; } }
     public Side side;
     public Texture logo;
+    public Transform[] positionLocations;
+    public CourtScript court;
 
     public Strategy CurrentStrategy
     { get { return currentStrategies[numberOfActivePlayers][currentMode][strategyIndex[currentMode]]; } }
@@ -28,6 +30,7 @@ public class Team
         currentMode = StrategyType.Defense;
         side = Side.Right;
         name = "UnrivaledSuperHottie";
+        positionLocations = new Transform[CourtScript.MaxNumberOfPlayers];
     }
 
     public Team(Side currentSide) : this()
@@ -56,7 +59,7 @@ public class Team
         }
     }
 
-    public void AddPlayer()
+    public bool AddPlayer()
     {
         if (numberOfActivePlayers < CourtScript.MaxNumberOfPlayers)
         {
@@ -66,10 +69,12 @@ public class Team
             sp.isPlayer = false;
             sp.team = this;
             players.Add(sp);
+            return true;
         }
+        return false;
     }
 
-    public void AddPlayer(SpecialAction sp)
+    public bool AddPlayer(SpecialAction sp)
     {
         if (numberOfActivePlayers < CourtScript.MaxNumberOfPlayers)
         {
@@ -77,13 +82,46 @@ public class Team
             sp.currentPosition = numberOfActivePlayers + 1;
             sp.team = this;
             players.Add(sp);
+            return true;
         }
+        return false;
+    }
+
+    public SpecialAction RemovePlayer()
+    {
+        SpecialAction removeP = null;
+        for (int i = 0; i < numberOfActivePlayers; i++)
+        {
+            removeP = players.Find(x => x.currentPosition == numberOfActivePlayers - i);
+            if (!removeP.isPlayer)
+            {
+                SpecialAction other = null;
+                for (int b = i-1; b >= 0; b--)
+                {
+                    other = players.Find(x => x.currentPosition == numberOfActivePlayers - b);
+                    other.currentPosition--;
+                }
+                if(!players.Remove(removeP))
+                    MonoBehaviour.print("Didn't remove player for some reason");
+                break;
+            }
+        }
+        foreach (SpecialAction sp in players)
+            MonoBehaviour.print(sp.currentPosition);
+        return removeP.isPlayer ? null : removeP;
+        
     }
 
     public void AddBlocker(SpecialAction p)
     {
         if (!blockers.Contains(p))
             blockers.Add(p);
+    }
+
+    public void RemoveBlocker(SpecialAction p)
+    {
+        if (blockers.Contains(p))
+            blockers.Remove(p);
     }
 
     public void AddStrategy(Strategy s)
@@ -163,9 +201,9 @@ public class Team
         SpecialAction temp = players[pos - 1];
         sub = players[pos - 1];
         sub.currentPosition = temp.currentPosition;
-        CourtScript.GetHighestParent(temp.transform).gameObject.SetActive(false);
-        if (!CourtScript.GetHighestParent(sub.transform).gameObject.activeInHierarchy)
-            CourtScript.GetHighestParent(sub.transform).gameObject.SetActive(true);
+        temp.myParent.parent.gameObject.SetActive(false);
+        if (!sub.myParent.parent.gameObject.activeInHierarchy)
+            sub.myParent.parent.gameObject.SetActive(true);
     }
 
     public Vector3 GetBlockSide(SpecialAction p, Vector3 goToLocation)
@@ -180,7 +218,6 @@ public class Team
             offset = ((float)index - Mathf.Floor(sortedBlockers.Count / 2f)) * playerSize;//.75 is the width of the player
         else
             offset = ((float)(index * 2f + 1) / (sortedBlockers.Count * 2f) - 1f / 2) * sortedBlockers.Count * playerSize;
-        //MonoBehaviour.print(p.currentPosition + ", " + index + ", " + offset + ", " + sortedBlockers.Count);
         return Vector3.right * -offset;
     }
 
@@ -190,7 +227,7 @@ public class Team
         {
             p.currentPosition = (p.currentPosition + 1) % (numberOfActivePlayers);
             if (p.currentPosition == 0)
-                p.currentPosition = 6;
+                p.currentPosition = numberOfActivePlayers;
         }
     }
 
@@ -198,5 +235,21 @@ public class Team
     {
         currentMode = mode;
         blockers.Clear();
+    }
+
+    public override string ToString()
+    {
+        System.Text.StringBuilder formattedString = new System.Text.StringBuilder();
+        formattedString.Append("**********Team: " + name + "**********\n");
+        formattedString.Append("Current Strategy: " + CurrentStrategy.name + "\n");
+        formattedString.Append("Number of Players: " + numberOfActivePlayers + "\n");
+        formattedString.Append("Side: " + side + "\n");
+        formattedString.Append("Current Mode: " + currentMode + "\n");
+        return formattedString.ToString();
+    }
+
+    public bool isBlocker(int position)
+    {
+        return Mathf.Abs(positionLocations[position - 1].position.z) < Mathf.Abs(court.dimensions.FrontLine(side).z);
     }
 }

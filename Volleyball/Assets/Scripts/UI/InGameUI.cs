@@ -51,6 +51,7 @@ public class InGameUI : MonoBehaviour {
             currentlyActive.SetActive(false);
             switch(currentlyActive.name)
             {
+                case "Rules ScrollView":
                 case "Training Options":
                 case "Camera ScrollView":
                     currentlyActive.transform.parent.parent.gameObject.SetActive(false);
@@ -74,7 +75,6 @@ public class InGameUI : MonoBehaviour {
                 currentlyActive.SetActive(true);
                 break;
             case "Camera":
-                //you.transform.parent.gameObject.SetActive(true);
                 you.transform.parent.parent.Find("Options ScrollView").gameObject.SetActive(true);
                 currentlyActive = you.transform.parent.parent.Find("Options ScrollView/Panel/Camera ScrollView").gameObject;
                 currentlyActive.SetActive(true);
@@ -86,7 +86,7 @@ public class InGameUI : MonoBehaviour {
                 break;
             default:
                 
-                print("Don't have a case for " + you.name + " yet");
+                print("Don't have a Button Click case for " + you.name + " yet");
                 break;
         }
         

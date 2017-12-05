@@ -87,6 +87,7 @@
     <Compile Include="Assets\Scripts\MyMouseLook.cs" />
     <Compile Include="Assets\Scripts\PassDownEvents.cs" />
     <Compile Include="Assets\Scripts\Player\IInitializable.cs" />
+    <Compile Include="Assets\Scripts\Player\Movement\PlayerArmMovement.cs" />
     <Compile Include="Assets\Scripts\Player\Movement\PlayerMovement.cs" />
     <Compile Include="Assets\Scripts\Player\Movement\PlayerSquat.cs" />
     <Compile Include="Assets\Scripts\Player\Shooting\PlayerAim.cs" />

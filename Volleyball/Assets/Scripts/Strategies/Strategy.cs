@@ -196,6 +196,8 @@ public enum PassSpeed { SuperQuick = 1, Quick = 2, SemiFast = 4, Slow = 8};
 public enum StrategyType { Offense = 0, Defense = 1 }
 public enum DefensePosition { Blocker = 0, AngleDefender = 1, SeamDefender = 2 }
 public enum BlockingScheme { Shutout = 0, Funnel = 1  }
+public enum BallSimulation { Left = -1, Center = 0, Right = 1 }
+
 [CreateAssetMenu(fileName = "New Strategy", menuName = "Strategy", order = 3)]
 public class Strategy : ScriptableObject {
 
@@ -207,6 +209,9 @@ public class Strategy : ScriptableObject {
     public BlockingScheme blockingScheme;
 
     [SerializeField]
+    private Vector3[] defensePositions;
+
+    [SerializeField]
     private Vector3[] defaultPositions;
 
     public Vector3 defensePassToLocation;
@@ -215,8 +220,9 @@ public class Strategy : ScriptableObject {
     [SerializeField]
     private bool change;
 
-	// Use this for initialization
-	void Start () {
+    public static float PassSpeedToFloat(PassSpeed passSpeed) { return (float)passSpeed / 4f; }
+    // Use this for initialization
+    void Start () {
 	}
 	
 
@@ -224,6 +230,12 @@ public class Strategy : ScriptableObject {
 	void Update () {
 		
 	}
+
+    public Vector3 DefensePositions(BallSimulation bs, int position)
+    {
+        int index = ((int)bs + 1) * CourtScript.MaxNumberOfPlayers + (position);
+        return defensePositions[index];
+    }
 
     public Vector3 DefaultPositions(int position)
     {
@@ -293,6 +305,17 @@ public class Strategy : ScriptableObject {
         {
             return myPass[iteration][i];
         }
+    }
+
+    public int GetMaxPassNumber()
+    {
+        int passNum = 0;
+        for (int i = 0; i < myPass.size; i++)
+        {
+            if (myPass[i].size > 0)
+                passNum++;
+        }
+        return passNum;
     }
 
     public Vector3 ScaleForNormalCourt(Vector3 input)

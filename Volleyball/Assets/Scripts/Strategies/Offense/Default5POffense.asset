@@ -37,7 +37,7 @@ MonoBehaviour:
     timeOffset: 0
     size: 0
   - points:
-    - {x: 2.61, y: 1.1, z: 1.5}
+    - {x: 2.61, y: 1.1, z: 1.53}
     - {x: 0, y: 0, z: 0}
     - {x: 0, y: 0, z: 0}
     - {x: 0, y: 0, z: 0}
@@ -52,7 +52,7 @@ MonoBehaviour:
     - {x: 0, y: 0, z: 0}
     - {x: 0, y: 0, z: 0}
     - {x: 0, y: 0, z: 0}
-    walkToThisPoint: 000000000000000000000000000000
+    walkToThisPoint: 010000000000000000000000000000
     shouldJump: 1
     stopJump: 1
     jumpTime: 1
@@ -74,9 +74,9 @@ MonoBehaviour:
     - {x: 0, y: 0, z: 0}
     - {x: 0, y: 0, z: 0}
     - {x: 0, y: 0, z: 0}
-    walkToThisPoint: 000000000000000000000000000000
+    walkToThisPoint: 010000000000000000000000000000
     shouldJump: 1
-    stopJump: 0
+    stopJump: 1
     jumpTime: 1
     timeOffset: 0.2
     size: 1
@@ -131,9 +131,28 @@ MonoBehaviour:
     jumpTime: 0
     timeOffset: 0
     size: 0
-  blocker: 
-  myPosition: 
+  blocker: 000000000000
+  myPosition: 000000000000000000000000000000000000000000000000
   blockingScheme: 0
+  defensePositions:
+  - {x: 11, y: 11, z: 11}
+  - {x: 11, y: 11, z: 11}
+  - {x: 11, y: 11, z: 11}
+  - {x: 11, y: 11, z: 11}
+  - {x: 11, y: 11, z: 11}
+  - {x: 11, y: 11, z: 11}
+  - {x: 11, y: 11, z: 11}
+  - {x: 11, y: 11, z: 11}
+  - {x: 11, y: 11, z: 11}
+  - {x: 11, y: 11, z: 11}
+  - {x: 11, y: 11, z: 11}
+  - {x: 11, y: 11, z: 11}
+  - {x: 11, y: 11, z: 11}
+  - {x: 11, y: 11, z: 11}
+  - {x: 11, y: 11, z: 11}
+  - {x: 11, y: 11, z: 11}
+  - {x: 11, y: 11, z: 11}
+  - {x: 11, y: 11, z: 11}
   defaultPositions:
   - {x: 2.9999998, y: 1.1, z: 6.5100007}
   - {x: 2.61, y: 1.1, z: 1.5000004}

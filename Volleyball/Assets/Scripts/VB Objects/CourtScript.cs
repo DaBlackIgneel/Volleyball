@@ -39,12 +39,12 @@ public struct CourtDimensions
 
     public Rectangle FrontLineRect(Side side)
     {
-        return new Rectangle(new Vector3(width / 2 * (int)side, 0, length / 6.0f * (int)side), new Vector3(-width / 2 * (int)side, 0, 0));
+        return new Rectangle(new Vector3(width / 2 * (float)side, 0, length / 6.0f * (float)side), new Vector3(-width / 2 * (float)side, 0, 0));
     }
 
     public Rectangle BackLineRect(Side side)
     {
-        return new Rectangle(new Vector3(width / 2 * (int)side, 0, length / 2.0f * (int)side), new Vector3(-width / 2 * (int)side, 0, length / 6.0f * (int)side));
+        return new Rectangle(new Vector3(width / 2 * (float)side, 0, length / 2.0f * (float)side), new Vector3(-width / 2 * (float)side, 0, length / 6.0f * (float)side));
     }
 
     public Vector3 FrontLine(Side side)
@@ -112,32 +112,33 @@ public class CourtScript : MonoBehaviour {
         get { return net.transform.position.y + net.transform.localScale.y/2; }
     }
 
-
+    public GameObject playerPrefab;
     LocationRelation localRelate;
     float currentTime;
-    float normalServeWaitTime = 5;
+    float normalServeWaitTime = 2;
     float quickServeWaitTime = 1;
-    bool resetPositions;
+    bool dontRotate;
+    bool rotatePositions;
     string LeftSideName = "LeftSide";
     string RightSideName = "RightSide";
 
     float displayTimer = 1;
-    float displayTimerStep = .01f;
+    float displayTimerStep = .5f;
 
     Rules courtRules;
-    GameObject[] people;
+    
     Dictionary<Side,List<SpecialAction>> players;
     Dictionary<Side, StrategyType> mode;
     VolleyballScript ball;
     SpecialAction server;
-    public Team LeftTeam;
-    public Team RightTeam;
 
     public Dictionary<Side, Team> teams;
+    public List<Vector3> scoredPoints;
 
     UnityEngine.UI.Text[] scoreDisplay;
     Vector2 scoreIndex;
     UnityEngine.UI.Text displayText;
+    public UnityEngine.UI.Dropdown teamNameDropDown;
     [System.NonSerialized]
     public GameObject net;
     // Use this for initialization
@@ -145,8 +146,10 @@ public class CourtScript : MonoBehaviour {
     {
         dimensions = new CourtDimensions(18, 9);
 
+        scoredPoints = new List<Vector3>();
+
         //find all players in the game
-        people = GameObject.FindGameObjectsWithTag("Player");
+        GameObject[] people = GameObject.FindGameObjectsWithTag("Player");
 
         localRelate = GetComponent<LocationRelation>();
 
@@ -197,48 +200,50 @@ public class CourtScript : MonoBehaviour {
                 teams.Add(tempPerson.currentSide, new Team(tempPerson.currentSide));
                 players.Add(tempPerson.currentSide, new List<SpecialAction>());
                 sideInPlay.Add(tempPerson.currentSide);
+                teams[tempPerson.currentSide].name = tempPerson.currentSide.ToString() + "_Team";
             }
             players[tempPerson.currentSide].Add(tempPerson);
             teams[tempPerson.currentSide].AddPlayer(tempPerson);
         }
-        /*LeftTeam = new Team(players[Side.Left]);
-        LeftTeam.SetSide(Side.Left);
-        RightTeam = new Team(players[Side.Right]);
-        RightTeam.SetSide(Side.Right);
-        LeftTeam.SwapPositions(1, LeftTeam.numberOfActivePlayers);*/
+
         currentStrategy = new Dictionary<Side, Dictionary<StrategyType, Strategy>>();
         mode = new Dictionary<Side, StrategyType>();
         foreach (Side tempSide in sideInPlay)
         {
-            //Side tempSide = (Side)i;
             currentStrategy.Add(tempSide, new Dictionary<StrategyType, Strategy>());
             currentStrategy[tempSide].Add(StrategyType.Defense, defaultDefenseStrategies[players[tempSide].Count - 1]);
             currentStrategy[tempSide].Add(StrategyType.Offense, defaultOffenseStrategies[players[tempSide].Count - 1]);
             teams[tempSide].AddStrategy(defaultDefenseStrategies);
             teams[tempSide].AddStrategy(defaultOffenseStrategies);
+            teams[tempSide].court = this;
             mode.Add(tempSide, StrategyType.Defense);
-            /*if (i == -1)
+            for(int i = 0; i < MaxNumberOfPlayers; i++)
             {
-                LeftTeam.AddStrategy(defaultDefenseStrategies);
-                LeftTeam.AddStrategy(defaultOffenseStrategies);
-                RightTeam.AddStrategy(defaultDefenseStrategies);
-                RightTeam.AddStrategy(defaultOffenseStrategies);
-            }*/
+                teams[tempSide].positionLocations[i] = GetCourtPosition(i + 1, tempSide);
+            }
         }
-
-        /*
-        mode.Add(Side.Left, StrategyType.Defense);
-        mode.Add(Side.Right, StrategyType.Defense);
-        */
-        
+        PopulateTeamDropDown();
+        //UpdateStrategyPositions();
     }
 	
+    void PopulateTeamDropDown()
+    {
+        List<string> teamNames = new List<string>();
+        foreach(Side t in teams.Keys)
+        {
+            teamNames.Add(teams[t].name);
+        }
+        teamNameDropDown.ClearOptions();
+        teamNameDropDown.AddOptions(teamNames);
+    }
+
 	// Update is called once per frame
 	void Update ()
     {
         UpdateScore();
+        FadeDisplay();
         //when the rally is over wait a few seconds to start the serve
-		if(rallyOver)
+        if (rallyOver)
         {
             //only transport the ball to the server in 1 instance
             if (currentTime < waitTime + 100)
@@ -257,9 +262,7 @@ public class CourtScript : MonoBehaviour {
 
     void FixedUpdate()
     {
-
-        FadeDisplay();
-
+        UpdateDefenseStrategyPositions();
     }
 
     void FadeDisplay()
@@ -269,7 +272,7 @@ public class CourtScript : MonoBehaviour {
             Color temp = displayText.color;
             temp.a = displayTimer;
             displayText.color = temp;
-            displayTimer -= displayTimerStep;
+            displayTimer -= displayTimerStep * Time.deltaTime;
         }
     }
 
@@ -279,32 +282,55 @@ public class CourtScript : MonoBehaviour {
         scoreDisplay[(int)scoreIndex.y].text = ((int)score.y).ToString();
     }
 
-    void UpdateStrategyPositions()
+    void UpdateDefenseStrategyPositions()
     {
-        try
+        foreach (Side tempSide in sideInPlay)
         {
-            foreach (Side tempSide in sideInPlay)
+            if(teams[tempSide].currentMode == StrategyType.Defense && FloatToSide(Mathf.Sign(ball.transform.position.z)) == OppositeSide(tempSide))
+            {
+                float size = 9;
+                float ballx = Mathf.Abs(ball.transform.position.x);
+                Vector3 position = Vector3.zero;
+                Vector3 difference = Vector3.zero;
+                float zNum = Mathf.Abs(ball.transform.position.z) - 3;
+                if (zNum < 0)
+                    zNum = 0;
+                if(ballx > size / 2)
+                {
+                    ballx = size / 2;
+                }
+                float positionRation = (ballx / (size / 2)) * ((size - zNum)/size) ;
+                BallSimulation ballSide = (BallSimulation)(Mathf.Sign(ball.transform.position.x) * (float)OppositeSide(tempSide));
+                for (int p = 0; p < teams[tempSide].numberOfActivePlayers; p++)
+                {
+                    if (!serve && !rallyOver && !readyToServe)
+                    {
+                        difference = positionRation * (teams[tempSide].CurrentStrategy.DefensePositions(ballSide, p) - teams[tempSide].CurrentStrategy.DefensePositions(BallSimulation.Center, p));
+                        position = difference + teams[tempSide].CurrentStrategy.DefensePositions(BallSimulation.Center, p);
+                    }
+                    else
+                    {
+                        position = teams[tempSide].CurrentStrategy.DefensePositions(BallSimulation.Center, p);
+                    }
+                    position = Vector3.Scale(position, new Vector3((int)(teams[tempSide].side)*-1, 1, (int)(teams[tempSide].side)));
+                    GetCourtPosition(p + 1, teams[tempSide].side).position = position;
+                }
+            }
+        }
+    }
+
+    void UpdateOffenseStrategyPositions()
+    {
+        foreach (Side tempSide in sideInPlay)
+        {
+            if(teams[tempSide].currentMode == StrategyType.Offense)
             {
                 for (int p = 0; p < teams[tempSide].numberOfActivePlayers; p++)
                 {
                     GetCourtPosition(p + 1, teams[tempSide].side).position = Vector3.Scale(teams[tempSide].CurrentStrategy.DefaultPositions(p), new Vector3((int)(teams[tempSide].side), 1, (int)(teams[tempSide].side)));
                 }
             }
-            /*
-            for (int p = 0; p < RightTeam.numberOfActivePlayers; p++)
-            {
-                GetCourtPosition(p + 1, RightTeam.side).position = Vector3.Scale(RightTeam.CurrentStrategy.DefaultPositions(p), new Vector3((int)(RightTeam.side), 1, (int)(RightTeam.side)));
-            }
-            for (int p = 0; p < LeftTeam.numberOfActivePlayers; p++)
-            {
-                GetCourtPosition(p + 1, LeftTeam.side).position = Vector3.Scale(LeftTeam.CurrentStrategy.DefaultPositions(p), new Vector3((int)(LeftTeam.side), 1, (int)(LeftTeam.side)));
-            }*/
         }
-        catch (System.Exception e)
-        {
-            print(e.Message);
-        }
-        
     }
 
     public Transform GetCourtPosition(int positionNumber, Side courtSide)
@@ -354,6 +380,17 @@ public class CourtScript : MonoBehaviour {
         else
             score.y++;
 
+        rotatePositions = wonVolley != serveSide && !dontRotate;
+        if (!onlyReceives && !onlyReceives)
+        {
+            serveSide = wonVolley;
+            waitTime = normalServeWaitTime;
+        }
+        else
+        {
+            waitTime = quickServeWaitTime;
+        }
+            
         //Makes sure to stop the game
         EndRally();
 
@@ -381,43 +418,27 @@ public class CourtScript : MonoBehaviour {
         {
             teams[side].EndRally();
         }
-        /*LeftTeam.EndRally();
-        RightTeam.EndRally();*/
     }
-
 
     //sets up the court for the serve
     void BeginServe()
     {
+        //declare that your ready to serve
+        readyToServe = true;
+
+        SetAllDefense();
+        UpdateDefenseStrategyPositions();
+        
         //go through each player and allow special actions and move them to their starting positions
-        foreach(Side side in sideInPlay)
+        foreach (Side side in sideInPlay)
         {
-            teams[side].ResetTeamPositions(false);
+            teams[side].ResetTeamPositions(rotatePositions && serveSide == side);
         }
-        /*LeftTeam.ResetTeamPositions(false);
-        RightTeam.ResetTeamPositions(false);*/
 
         //move the ball off to the side
         ball.transform.position = new Vector3(12, 0, 0);
         ball.Reset();
-
-        //declare that your ready to serve
-        readyToServe = true;
-
-        
-
-        if(onlyReceives)
-        {
-            SetAllDefense();
-            serve = false;
-            readyToServe = false;
-            rallyOver = false;
-            currentTime = 0;
-            ball.transform.position = localRelate.RandomSectionLocation(serveSide, CourtDimensions.Section.BackMiddle) + Vector3.up * 20;//localRelate.AimSpot(serveSide) + Vector3.up * 20;
-        }
     }
-
-    
 
     //transport the ball to the server
     public void GiveBallToServer()
@@ -441,7 +462,6 @@ public class CourtScript : MonoBehaviour {
         onlyServes = value;
         if (value)
         {
-            waitTime = quickServeWaitTime;
             courtRules.EnableGroundOut(true);
             serveSide = Side.Left;
         }
@@ -453,10 +473,66 @@ public class CourtScript : MonoBehaviour {
         onlyReceives = value;
         if (value)
         {
-            waitTime = quickServeWaitTime;
             courtRules.EnableGroundOut(true);
             serveSide = Side.Right;
         }
+    }
+    public void SetDontRotate(bool value)
+    {
+        dontRotate = value;
+    }
+    public void FromMenuAddPlayer()
+    {
+        foreach (Side t in teams.Keys)
+        {
+            if(teams[t].name == teamNameDropDown.options[teamNameDropDown.value].text)
+            {
+                AddPlayer(t);
+                break;
+            }
+        }
+    }
+    public void FromMenuRemovePlayer()
+    {
+        foreach (Side t in teams.Keys)
+        {
+            if (teams[t].name == teamNameDropDown.options[teamNameDropDown.value].text)
+            {
+                RemovePlayer(t);
+                break;
+            }
+        }
+    }
+
+    public void AddPlayer(Side tempSide)
+    {
+        SpecialAction tempPlayer = Instantiate<GameObject>(playerPrefab).GetComponentInChildren<SpecialAction>();
+        if (teams[tempSide].AddPlayer(tempPlayer))
+        {
+            players[tempSide].Add(tempPlayer);
+            
+            tempPlayer.SetPlayer(false);
+            tempPlayer.myParent.parent.position = dimensions.length / 4 * Vector3.forward * (float)tempSide + transform.position + (tempPlayer.myParent.parent.position.y + 2) * Vector3.up;
+        }
+        else
+        {
+            print("Can't add cause too many players");
+            Destroy(tempPlayer.myParent.parent);
+        }
+        
+    }
+
+    public void RemovePlayer(Side tempSide)
+    {
+        SpecialAction rp = teams[tempSide].RemovePlayer();
+        if (rp != null)
+        {
+            print("removed Player");
+            players[tempSide].Remove(rp);
+            Destroy(rp.myParent.parent.gameObject);
+        }
+        else
+            print("Couldn't remove player");
     }
 
     public void SetMode(Side side)
@@ -474,19 +550,7 @@ public class CourtScript : MonoBehaviour {
                 teams[tempSide].SetMode(StrategyType.Defense);
             }
         }
-        
-        /*mode[side] = StrategyType.Offense;
-        mode[OppositeSide(side)] = StrategyType.Defense;
-        if (LeftTeam.side == side)
-            LeftTeam.SetMode(StrategyType.Offense);
-        else
-            LeftTeam.SetMode(StrategyType.Defense);
-        if (RightTeam.side == side)
-            RightTeam.SetMode(StrategyType.Offense);
-        else
-            RightTeam.SetMode(StrategyType.Defense);
-            */
-        UpdateStrategyPositions();
+        UpdateOffenseStrategyPositions();
     }
 
     public void SetAllDefense()
@@ -496,11 +560,6 @@ public class CourtScript : MonoBehaviour {
             mode[side] = StrategyType.Defense;
             teams[side].SetMode(StrategyType.Defense);
         }
-        /*mode[Side.Left] = StrategyType.Defense;
-        mode[Side.Right] = StrategyType.Defense;
-        LeftTeam.SetMode(StrategyType.Defense);
-        RightTeam.SetMode(StrategyType.Defense);*/
-        UpdateStrategyPositions();
     }
 
     //given a side return the opposite side
@@ -508,7 +567,6 @@ public class CourtScript : MonoBehaviour {
     {
         return (Side)((int)currentSide * -1);
     }
-
     public static Transform GetHighestParent(Transform current)
     {
         if (current.parent == null)
@@ -516,7 +574,6 @@ public class CourtScript : MonoBehaviour {
         else
             return GetHighestParent(current.parent);
     }
-
     public static SpecialAction FindPlayerFromCollision(Transform current)
     {
         return GetHighestParent(current).Find("PlayerPivot/PlayerBody").GetComponent<SpecialAction>();

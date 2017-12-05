@@ -765,7 +765,7 @@ Transform:
   m_GameObject: {fileID: 1258095925955228}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 1.93, z: 0}
-  m_LocalScale: {x: 9, y: 1, z: 0.02}
+  m_LocalScale: {x: 9, y: 1, z: 0.03}
   m_Children: []
   m_Father: {fileID: 4318980731946442}
   m_RootOrder: 2
@@ -1509,6 +1509,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   serve: 0
   serveSide: -1
+  sideInPlay: 
   score: {x: 0, y: 0}
   rallyOver: 0
   waitTime: 5
@@ -1518,7 +1519,7 @@ MonoBehaviour:
   offline: 0
   defaultDefenseStrategies:
   - {fileID: 11400000, guid: 6b079ded10832ce48b4fd42a73718043, type: 2}
-  - {fileID: 11400000, guid: 6f2c4c9fb125c7b42b385b9c89726ba4, type: 2}
+  - {fileID: 11400000, guid: 2379efa662b590b49aff64592ad3e6ae, type: 2}
   - {fileID: 11400000, guid: c196d92f31c2721478ed3b36425a5d9e, type: 2}
   - {fileID: 11400000, guid: 5d39edb02b456f7438eeedc218de426c, type: 2}
   - {fileID: 11400000, guid: 74f5b164c055cf143aea2df725ab0eb4, type: 2}

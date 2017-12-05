@@ -17,40 +17,44 @@ public struct PredictionPack
         position = mPosition;
     }
 }
-
+public struct BallTarget
+{
+    public bool goToBall;
+    public int touchCount;
+    public BallTarget(bool b, int tc)
+    {
+        goToBall = b;
+        touchCount = tc;
+    }
+}
 
 public class SpecialAction : MonoBehaviour {
     public GameObject BallLandingIndicator;
 
-    public Vector3 aimSpot;
+    public bool showAimSpot;
 
-    public float tester1;
-    public float tester2;
-    public float tester3;
-    public float yScale;
+    private Vector3 aimSpot;
 
     [Range(0, 2000)]
     public float MaxPower = 1000;
-    [Range(0.001f,.99f)]
-    public float minimumPower = .25f;
 
     [Range(1,6)]
     public int currentPosition = 1;
     public bool isPlayer = true;
     public Side currentSide = Side.Left;
 
-    public float smashConst = 2;
-
     public bool resetPosition;
-    public float lobAgjust = 1f;
-    public float maxSpin = 5;
     public Team team;
-
-    public Vector3 distanceToBallLanding;
 
     public PlayerMovement myMovement{ get{ return movement;}}
 
     public CourtScript Court{ get{ return court; }}
+
+    public PlayerSquat mySquat { get { return playerSquat; } }
+
+    public PlayerAim myAim { get { return playerAim; } }
+
+    public PlayerArmMovement myArmMovement { get { return playerArm;  } } 
 
     public float MaxJumpHeight
     {
@@ -61,26 +65,20 @@ public class SpecialAction : MonoBehaviour {
         }
     }
 
-    public bool Hitting{ get{ return hitting;}
-    }
+    public bool Hitting{ get{ return hitting;} }
 
-    public float armWaveSensitivity = .5f;
-
-    [System.NonSerialized]
-    public bool goToBall;
+    public float Height { get { return HEIGHT; } }
+    //[System.NonSerialized]
+    BallTarget ballTarget;
     PlayerMovement movement;
     MyMouseLook m_MouseLook;
     [System.NonSerialized]
     public Transform myParent;
-
-    public bool block;
-    bool blockOver;
-    bool dive;
+    
     bool hitting;
-    bool aimed;
 
     float hitCooldown = 1;
-    float hitCooldownTimer = 0;
+    public float hitCooldownTimer = 0;
     float normalHitCooldown = 1;
     float serveHitCooldown = .1f;
     float startHitTime;
@@ -105,9 +103,6 @@ public class SpecialAction : MonoBehaviour {
     GameObject aimSpotIndicator;
 
     CourtScript court;
-    Transform arms;
-    MyMouseLook rightArm;
-    MyMouseLook leftArm;
     CameraFollow tpc;
     Camera fpc;
     MyMouseLook cameraLook;
@@ -121,14 +116,13 @@ public class SpecialAction : MonoBehaviour {
     [Range(0.1f, 4)]
     float smashScrollSpeed = .5f;
     bool cancelAim;
+    bool cancelAimEnd;
 
     [SerializeField]
     [Range(0.01f, 2)]
     float lobScrollSpeed = .25f;
 
     Vector3 originalPosition;
-
-    Vector2 armWaveRotation;
 
     Vector3 myLastVelocity;
     bool hittable;
@@ -146,7 +140,6 @@ public class SpecialAction : MonoBehaviour {
     float aimAngle = 0;
     [SerializeField]
     float aimHeight = 1.1f;
-    bool runServe;
     [SerializeField]
     float servePower = .75f;
     delegate void ServeOfChoice();
@@ -163,8 +156,7 @@ public class SpecialAction : MonoBehaviour {
     bool stop;
     bool printing;
     bool shootUp;
-    float downArm = 0;
-    float blockArmRotation;
+    bool running=false;
 
     int movementIndex;
     bool dontHit;
@@ -175,30 +167,33 @@ public class SpecialAction : MonoBehaviour {
     PlayerAim playerAim;
     PlayerShoot playerShoot;
     PlayerSquat playerSquat;
-    Vector3 playerPower;
+    PlayerArmMovement playerArm;
     ShootCapsule shootInfo;
     DrawPath shotPathDrawer;
+    bool showBallPath;
 
+    public SpecialAction passPlayer;
+
+    float computerServeRunTimeOffset = 0.5f;
+    float computerServeJumpTimeOffset = 0.75f;
+
+    //public bool shouldPrintGoToBall;
+    
     // Use this for initialization
-    void Start () {
+    void Awake () {
         myServes = new List<ServeOfChoice>();
-        myServes.Add(NormalServe);
-        myServes.Add(RunningServe);
+
         //gets the object over this object in the object heirarchy
         myParent = transform.parent;
-        armWaveRotation = Vector2.zero;
         //the component that controlls the physics of this player
         rb = myParent.parent.GetComponent<Rigidbody>();
+
+        ballTarget = new BallTarget(false, -99);
 
         //the component to draw the path of where you will shoot;
         shotPathDrawer = GetComponent<DrawPath>();
         shootInfo = new ShootCapsule();
-
-        //finds the arms used to block
-        arms = myParent.parent.Find("Arms");
-        rightArm = arms.Find("RightArmPivot").GetComponent<MyMouseLook>();
-        leftArm = arms.Find("LeftArmPivot").GetComponent<MyMouseLook>();
-
+        passPlayer = null;
         //finds the cameras for this player
         fpc = myParent.parent.Find("FirstPersonCamera").GetComponent<Camera>();
         tpc = myParent.parent.Find("ThirdPersonCamera").GetComponent<CameraFollow>();
@@ -217,21 +212,7 @@ public class SpecialAction : MonoBehaviour {
 
         //gets the component that controlls the vertical movement of the camera
         cameraLook = tpc.GetComponent<MyMouseLook>();
-
-        //if a person is controlling the player than lock the mouse to the center of the screen
-        if (isPlayer)
-            cameraLook.SetCursorLock(true);
-        //if a computer is controlling the player turn off the cameras and the player movement controlled by 
-        //the input
-        else
-        {
-            movement.relativeMovement = false;
-            fpc.gameObject.SetActive(false);
-            tpc.gameObject.SetActive(false);
-            m_MouseLook.enabled = false;
-            cameraLook.enabled = false;
-        }
-
+        
         //store the current time it takes for fixed update to run once
         regFixedTimeDelta = Time.fixedDeltaTime;
 
@@ -245,7 +226,10 @@ public class SpecialAction : MonoBehaviour {
 
         myLastVelocity = Vector3.zero;
         ballStartingPosition = Vector3.zero;
-         
+
+        SetPlayer(isPlayer);
+
+        #region Getting_Player_Components 
         try
         {
             playerAim = GetComponent<PlayerAim>();
@@ -260,6 +244,7 @@ public class SpecialAction : MonoBehaviour {
         {
             playerAim.Initialize(this);
         }
+
         try
         {
             playerShoot = GetComponent<PlayerShoot>();
@@ -274,7 +259,7 @@ public class SpecialAction : MonoBehaviour {
         {
             playerShoot.Initialize(this);
         }
-        //
+        
         try
         {
             playerSquat = GetComponent<PlayerSquat>();
@@ -289,28 +274,38 @@ public class SpecialAction : MonoBehaviour {
         {
             playerSquat.Initialize(this);
         }
+
+        try
+        {
+            playerArm = GetComponent<PlayerArmMovement>();
+            if (playerArm == null)
+                playerArm = gameObject.AddComponent<PlayerArmMovement>();
+        }
+        catch (System.Exception e)
+        {
+            playerArm = gameObject.AddComponent<PlayerArmMovement>();
+        }
+        finally
+        {
+            playerArm.Initialize(this);
+        }
+        #endregion
     }
 
     // Update is called once per frame
     void Update()
     {
-
         if (isPlayer)
         {
             gameUI.SetToggleMenu(Input.GetButtonDown("Menu"), this);
-            
         }
-        if(!isPlayer && BallLandingIndicator != null)
-        {
-            //spot = aimSpot;
-            //spot.z *= (int)CourtScript.OppositeSide(currentSide);
-            if (aimSpotIndicator == null)
-                aimSpotIndicator = Instantiate(BallLandingIndicator, aimSpot, Quaternion.identity);
-            else
-                aimSpotIndicator.transform.position = aimSpot;
-            aimSpotIndicator.GetComponent<MeshRenderer>().material.color = Color.green;
-        }
+        
 
+        if (showAimSpot)
+            ShowAimSpot();
+
+        if (showBallPath)
+            PredictShot();
         //sets the cooldowns for hitting the ball
         //if you are serving, you have a smaller cooldown
         if (court.serve)
@@ -332,7 +327,7 @@ public class SpecialAction : MonoBehaviour {
 
             //allow for fixed update to run at normal speed even when you slow down time
             //this allows for you to controll your character in realtime otherwise the
-            //controll is choppy
+            //control is choppy
             Time.fixedDeltaTime = regFixedTimeDelta * Time.timeScale;
 
             //increments the current time for the cooldown
@@ -357,14 +352,14 @@ public class SpecialAction : MonoBehaviour {
                 ResetPosition();
             }
 
-            //if you are the server and its time to allow the server to request the ball
-            CheckServe();
+            
         }
-
+        //if you are the server and its time to allow the server to request the ball
+        CheckServe();
         //if your squatted then unsquat yourself
         playerSquat.Squat();
         //allow yourself to start blocking
-        Block();
+        playerArm.Block();
     }
 
     void Movement()
@@ -424,15 +419,17 @@ public class SpecialAction : MonoBehaviour {
 
     void CheckServe()
     {
-        if (court.readyToServe && court.serveSide == currentSide && currentPosition == 1)
+        if (court.serve && court.serveSide == currentSide && currentPosition == 1)
         {
             if (isPlayer)
             {
-                //left click the mouse to call for the ball
-                if (Input.GetAxisRaw("Fire") == 1)
-                {
-                    hitTime = 999;
-                    court.GiveBallToServer();
+                if (court.readyToServe) { 
+                    //left click the mouse to call for the ball
+                    if (Input.GetAxisRaw("Fire") == 1)
+                    {
+                        hitTime = 999;
+                        court.GiveBallToServer();
+                    }
                 }
             }
             else
@@ -444,106 +441,65 @@ public class SpecialAction : MonoBehaviour {
 
     #region computerStuff
 
-
-    
-
-    /*Vector3 MovePositionAtMaxHeight(float maxHeight)
-    {
-        Vector3 predictedPosition = Vector3.zero;
-        
-        try
-        {
-            Vector3 distance = vBall.transform.position - movement.transform.position;
-            Vector3 ballVelocity = vBall.rb.velocity;
-            float speed = movement.sprintSpeed;
-            float direction = Mathf.Asin((distance.z/distance.x * ballVelocity.x - ballVelocity.z)/Mathf.Sqrt(speed * speed + Mathf.Pow(distance.z/distance.x * speed,2))) + Mathf.Atan(distance.z/distance.x);
-            float time = distance.x / (speed * Mathf.Cos(direction) - ballVelocity.x);
-            Vector3 ballPosition = vBall.transform.position + ballVelocity * time + .5f * Physics.gravity * time * time;
-            if(ballPosition.y > PredictBallPosition(maxHeight).position.y)
-            {
-                predictedPosition = PredictBallPosition(maxHeight).position;
-            }
-            else
-            {
-                predictedPosition = PredictBallLanding();
-            }
-        }
-        catch(System.Exception e)
-        {
-            predictedPosition = PredictBallLanding();
-            print(e.Message);
-        }
-        return predictedPosition;
-    }*/
-
     //teleports to the location of the ball when it is on their side and it is at about head height
     void ComputerMovement()
     {
-        /*checks if the ball is currently on the same side as the person
-        if (((int)currentSide) * vBall.transform.position.z > 0)
-        {
-            //if the ball is currently around head height
-            //then teleports to the ball
-            if(vBall.transform.position.y > 1.25f && vBall.transform.position.y < 1.75f)
-            {
-                float offset = .5f;
-                MoveTowards(vBall.rb.position + ((int)currentSide) * Vector3.forward * offset);
-            }
-        }*/
         if((court.serve && !court.readyToServe && court.serveSide != currentSide) || !court.serve)
         {
+            //if your on defense, then move defensively
             if (team.currentMode == StrategyType.Defense)
             {
                 movementIndex = 0;
                 dontHit = false;
                 DefensiveMovement();
             }
+            //Otherwise you must be on offense, so follow the offense strategy
             else
             {
                 OffensiveMovement();
             }
         }
-        else
-        {
-            if (decided)
-            {
-                ComputerActions();
-            }
-        }
-        
     }
 
     void OffensiveMovement()
     {
+        //Gets the movement path from the offense strategy
         Path myPath = LocationRelation.GetMovement(this);
+        
+        //reset variables
         movement.goToRotation = false;
         playerSquat.squat = false;
-
+        dontHit = false;
         if (movement.isGrounded)
-            block = false;
+            playerArm.block = false;
         else
             movement.jump = false;
-        dontHit = !goToBall;
+
+        //If there is no path for the player to follow
         if (myPath.size == 0)
         {
-            if (goToBall)
+            //Get the ball if you were the intended receiver
+            if (ShouldGoToBall())
             {
-                
-                movement.MoveTowards(court.LocalRelate.aimSpot);
+                GetBall();
             }
+            //Otherwise go to the offensive position
             else
                 ReturnToPosition();
         }
+        //If there is a path, then follow the path
         else
         {
             Vector3 movementLocation = movementIndex < myPath.size? LocationRelation.PathLocationToCourt(myPath.points[movementIndex], currentSide): LocationRelation.PathLocationToCourt(myPath.points[movementIndex-1], currentSide);
+            //if you haven't reached the end of the path, then continue following it
             if (movementIndex < myPath.size)
             {
-                if (Vector3.ProjectOnPlane(transform.position - movementLocation, Vector3.up).magnitude < .2f)
+                if (Vector3.ProjectOnPlane(transform.position - movementLocation, Vector3.up).magnitude < movement.sprintSpeed / 10f)
                     movementIndex++;
                 else
                     movement.MoveTowards(movementLocation,myPath.walkToThisPoint[movementIndex]);
             }
+            //if you've reached the end of the path, then stop
             else
             {
                 movement.Stop();
@@ -554,26 +510,14 @@ public class SpecialAction : MonoBehaviour {
                 float myOffset = myPath.timeOffset > jumpHighestTime ? jumpHighestTime : myPath.timeOffset;
                 if (myPath.shouldJump)
                 {
-                    if (myPath.jumpTime == JumpTime.EndOfPath && movementIndex == myPath.size - 1 && Vector3.ProjectOnPlane(transform.position - movementLocation, Vector3.up).magnitude < .5f)
+                    //if your supposed to jump, then jump
+                    if (   (myPath.jumpTime == JumpTime.EndOfPath && movementIndex == myPath.size - 1 && Vector3.ProjectOnPlane(transform.position - movementLocation, Vector3.up).magnitude < .5f)
+                        || (myPath.jumpTime == JumpTime.BeforeSetterReceivesBall && court.LocalRelate.TimeTillBallReachesLocation < myOffset && court.LocalRelate.TimeTillBallReachesLocation > -1f)
+                        || (myPath.jumpTime == JumpTime.BeforeAttackerReceivesBall && vBall.GetSideTouches(currentSide) == 2))
                     {
                         if (myPath.stopJump)
                             Stop();
                         movement.jump = true;
-                    }
-                    else if (court.LocalRelate.TimeTillBallReachesLocation < myOffset && court.LocalRelate.TimeTillBallReachesLocation > -1f)
-                    {
-                        if (myPath.jumpTime == JumpTime.BeforeSetterReceivesBall && vBall.GetSideTouches(currentSide) == 1)
-                        {
-                            if (myPath.stopJump)
-                                Stop();
-                            movement.jump = true;
-                        }
-                        else if (myPath.jumpTime == JumpTime.BeforeAttackerReceivesBall && vBall.GetSideTouches(currentSide) == 2)
-                        {
-                            if (myPath.stopJump)
-                                Stop();
-                            movement.jump = true;
-                        }
                     }
                 }
             }
@@ -587,88 +531,105 @@ public class SpecialAction : MonoBehaviour {
 
     void DefensiveMovement()
     {
-        goToBall = false;
-        bool shouldBlock = team.GetStrategy(StrategyType.Defense).myPosition[currentPosition - 1] == DefensePosition.Blocker;
-        if (ShouldMove() && movement.isGrounded)
-            GetBall();
+        //goToBall = false;
+        bool shouldBlock = team.isBlocker(currentPosition) 
+            && Mathf.Abs(transform.position.z) < court.dimensions.FrontLine(currentSide).z * (float)currentSide/2
+            && !vBall.LastHitByServer;
+
+        //if you are the closest player to the ball and it's on your side, then get the ball
+        if (ShouldMove())
+        {
+            if(movement.isGrounded)
+                GetBall();
+        }
+        //otherwise follow the defensive movement
         else
         {
             LocationRelation.BallToPlayer personBallIsGoingTo = court.LocalRelate.personBallIsGoingTo;
             if (shouldBlock)
             {
-                team.AddBlocker(this);
                 movement.faceNet = true;
-
-                //movement.transform.eulerAngles = Vector3.up * rotationAngle;
-                if (vBall.GetSideTouches(CourtScript.OppositeSide(currentSide)) > 1)
+                if(CourtScript.FloatToSide(vBall.transform.position.z) != currentSide)
                 {
-
-                    Vector3 followPlayer = vBall.transform.position;
-                    if (personBallIsGoingTo != null && personBallIsGoingTo.angle < 12)
-                        followPlayer = personBallIsGoingTo.player.transform.position;
-                    followPlayer.z = 0.5f * (float)currentSide;
-                    followPlayer.y = transform.position.y;
-                    //print("Original" + currentPosition + ": " + followPlayer);
-                    followPlayer += team.GetBlockSide(this, followPlayer);
-                    //print("New" + currentPosition + ": " + followPlayer);
-                    //bool walking = Mathf.Abs(followPlayer.x - transform.position.x) < 5;
-                    movement.MoveTowards(followPlayer);//, walking);
-                    
-                    if(personBallIsGoingTo != null)
+                    if (vBall.GetSideTouches(CourtScript.OppositeSide(currentSide)) > 1)
                     {
-                        float minimumAirTime = 0.25f;
-                        float maximumAirTime = Mathf.Abs(personBallIsGoingTo.player.movement.jumpSpeed / Physics.gravity.y) - .05f;
-                        float jumpTimeInAir = personBallIsGoingTo.player.movement.jumpSpeed * minimumAirTime + Physics.gravity.y * minimumAirTime * minimumAirTime / 2;
-                        float maxJumpTimeInAir = personBallIsGoingTo.player.movement.jumpSpeed * maximumAirTime + Physics.gravity.y * maximumAirTime * maximumAirTime / 2;
-                        if (!personBallIsGoingTo.player.movement.isGrounded && personBallIsGoingTo.player.movement.transform.position.y > jumpTimeInAir && movement.isGrounded)
+                        if (personBallIsGoingTo != null)
                         {
-                            if (Vector3.ProjectOnPlane(followPlayer - transform.position, Vector3.up).magnitude < 2)
-                            {
-                                if (Mathf.Abs(followPlayer.x - transform.position.x) < .2f || personBallIsGoingTo.player.movement.transform.position.y > maxJumpTimeInAir)
-                                {
-                                    Stop();
-                                    movement.jump = true;
-                                    block = true;
-                                    armWaveRotation.x = 2.5f;
-
-                                    if (personBallIsGoingTo.player.movement.transform.position.y > maxJumpTimeInAir)
-                                    {
-                                        blockArmRotation = -1 * (Mathf.Atan2(2, followPlayer.x - transform.position.x) * Mathf.Rad2Deg - 90);
-                                        armWaveRotation.x = -5f;
-                                    }
-                                    else
-                                    {
-
-                                    }
-                                }
-                            }
-                            else
-                            {
-                                movement.jump = true;
-                                block = true;
-                                blockArmRotation = -1 * (Mathf.Atan2(1, followPlayer.x - transform.position.x) * Mathf.Rad2Deg - 90);
-                                armWaveRotation.x = -5;
-                            }
+                            //If the ball is going to a person and at least two people have touched
+                            //the ball, then block them
+                            if (BlockPlayer(personBallIsGoingTo))
+                                return;
                         }
-                        //movement.MoveTowards(followPlayer, personBallIsGoingTo.movement.isWalking);
-                        
-                        //print("moving towards player");
+                        else
+                        {
+                            //If the ball isn't going to a person, and the ball is going to go over
+                            //the net, then block the ball.
+                            if (BlockBallGoingOverNet())
+                                return;
+                        }
                     }
-                    if (!movement.isGrounded)
-                        movement.jump = false;
-                }
-                else
-                {
-                    //if(!movement.isGrounded)
-                        //movement.transform.eulerAngles = Vector3.up * rotationAngle;
-                    ReturnToPosition();
+                    //If the ball is going over the net even though less than two people have 
+                    //hit the ball, then block it.
+                    else
+                        if (BlockBallGoingOverNet())
+                            return;
                 }
             }
-            else
+
+            //Follow the defensive formation
+            ReturnToPosition();
+        }
+    }
+
+    bool BlockPlayer(LocationRelation.BallToPlayer personBallIsGoingTo)
+    {
+        if (personBallIsGoingTo.angle < 12)
+        {
+            SpecialAction followPlayer = personBallIsGoingTo.player;
+            if (Mathf.Abs(Vector3.Project(followPlayer.transform.position - transform.position, Vector3.up).x) < .75f)
             {
-                ReturnToPosition();
+                float timeTillMeet = Vector3.Project(followPlayer.transform.position - vBall.transform.position, Vector3.up).magnitude / Vector3.Project(followPlayer.rb.velocity - vBall.rb.velocity, Vector3.up).magnitude;
+                return ConditionalBlock(timeTillMeet);
+                
             }
         }
+        return false;
+    }
+
+    bool BlockBallGoingOverNet()
+    {
+        if (CourtScript.FloatToSide(vBall.rb.velocity.z) == currentSide)
+        {
+            float timeTillBallAtNet = -vBall.transform.position.z / vBall.rb.velocity.z;
+            Vector3 ballAtNet = vBall.transform.position + vBall.rb.velocity * timeTillBallAtNet + .5f * Physics.gravity * Mathf.Pow(timeTillBallAtNet, 2);
+            if (ballAtNet.y > court.NetHeight)
+            {
+                if (Mathf.Abs(Vector3.Project(ballAtNet - transform.position, Vector3.up).x) < .5f)
+                {
+                    return ConditionalBlock(timeTillBallAtNet);
+                }
+            }
+        }
+        return false;
+    }
+
+    bool ConditionalBlock(float time)
+    {
+        if (time < (-movement.jumpSpeed / Physics.gravity.y) * .75f)
+        {
+            if (movement.isGrounded)
+                movement.jump = true;
+            if(Mathf.Abs(transform.position.z) > 0)
+            {
+                Vector3 position = court.GetPosition(currentPosition, currentSide, this);
+                position.z = 0;
+                movement.MoveDirectlyTowards(position);
+            }
+            playerArm.block = true;
+            playerArm.armWaveRotation.x = 2.5f;
+            return true;
+        }
+        return false;
     }
 
     bool ShouldMove()
@@ -683,59 +644,63 @@ public class SpecialAction : MonoBehaviour {
         movement.faceNet = true;
         playerSquat.squat = false;
         if (movement.isGrounded)
-            block = false;
-        movement.MoveTowards(court.GetPosition(currentPosition, currentSide, this));
-
+            playerArm.block = false;
+        Vector3 position = court.GetPosition(currentPosition, currentSide, this);
+        movement.CalculatedMoveTowards(position);
+        //movement.MoveTowards(position, Vector3.Project(position - transform.position, Vector3.up).magnitude < WALK_LENGTH);
     }
 
     bool IsSupposedToGetBall()
     {
-        return court.LocalRelate.ClosestPlayerToBall[currentSide] == this;
+        return court.LocalRelate.ClosestPlayerToBall[currentSide] != null 
+                && court.LocalRelate.ClosestPlayerToBall[currentSide].player == this;
     }
 
     void GetBall()
     {
-        //PredictionPack pp = PredictBallPosition(HEIGHT);
-        //float moveTime = PredictMovementTime(pp.position);
         movement.goToRotation = false;
         movement.faceNet = false;
         if (movement.isGrounded)
-            block = false;
+            playerArm.block = false;
         Vector3 landing = court.LocalRelate.MovePositionAtMaxHeight(MaxJumpHeight - 2*jumpError, movement);
         Vector3 ballDistance = vBall.transform.position - landing;
+        Vector3 distance = Vector3.ProjectOnPlane(landing - movement.transform.position, Vector3.up);
+        bool shouldSquat = landing.y <= SQUAT_HEIGHT + .5f && vBall.transform.position.y < (1f - vBall.rb.velocity.y / 2f) && distance.magnitude < WALK_LENGTH * 3 / 2f && (!movement.jumping);
+        bool shouldWalk = (distance - distance.y * Vector3.up).magnitude < WALK_LENGTH && (!movement.jumping);
+        playerSquat.squat = shouldSquat;
         if (landing.y > HEIGHT && !movement.jumping)
         {
             float time = (-vBall.rb.velocity.y - Mathf.Sqrt(Mathf.Pow(vBall.rb.velocity.y, 2) - 4 * Physics.gravity.y * ballDistance.y)) / (2 * Physics.gravity.y);
             float jumpDistance = time * movement.jumpSpeed + .5f * time * time * Physics.gravity.y + HEIGHT;
+            float maxJumpHeightTime = -movement.jumpSpeed / Physics.gravity.y;
+            float timeTillPlayerReachesLanding = Vector3.Project(landing - transform.position, Vector3.up).magnitude / movement.sprintSpeed;
             float distanceToLanding = Vector3.Distance(vBall.rb.velocity * time + vBall.transform.position + Physics.gravity * time * time / 2, landing);
-            if (jumpDistance < landing.y + jumpError && distanceToLanding < 2 && jumpDistance > landing.y && movement.isGrounded)
+            if (time < maxJumpHeightTime && time > maxJumpHeightTime * .5f && vBall.rb.velocity.magnitude < 20)//jumpDistance < landing.y + jumpError && distanceToLanding < 2 && jumpDistance > landing.y && movement.isGrounded)
+            {
                 movement.jump = true;
-            
+            }
+
         }
         if (!movement.isGrounded)
             movement.jump = false;
-        Vector3 distance = landing - movement.transform.position;
-        distance = Vector3.ProjectOnPlane(distance, Vector3.up);
-        bool shouldSquat = landing.y <= SQUAT_HEIGHT + .5f && vBall.transform.position.y < (1f - vBall.rb.velocity.y / 2f) && distance.magnitude < WALK_LENGTH * 3 / 2f && (!movement.jumping);
-        bool shouldWalk = (distance - distance.y * Vector3.up).magnitude < WALK_LENGTH && (!movement.jumping);// && vBall.transform.position.y > 4;
-        if (shouldWalk && movement.jump)
-            Stop();
-        else
-            movement.MoveTowards(landing, shouldWalk);
-        playerSquat.squat = shouldSquat;
-        if (!isPlayer)
-        {
-            if (GameObject.Find(BallLandingIndicator.name) == null)
-                BallLandingIndicator = Instantiate(BallLandingIndicator, landing, Quaternion.identity);
-            else
-                BallLandingIndicator.transform.position = landing;
-        }
+
+        movement.MoveTowards(landing, shouldWalk);
+        aimSpot = landing;
     }
 
     void Stop()
     {
         movement.Stop();
         playerSquat.squat = false;
+    }
+
+    bool ShouldGoToBall()
+    {
+        //if(shouldPrintGoToBall)
+            //print("Should go to ball: " + ballTarget.goToBall + ", " + ballTarget.touchCount + "==" + vBall.GetSideTouches(currentSide));
+        ballTarget.goToBall = ballTarget.goToBall && ballTarget.touchCount == vBall.GetSideTouches(currentSide);
+
+        return ballTarget.goToBall;
     }
 
     //teleports to a position
@@ -756,7 +721,7 @@ public class SpecialAction : MonoBehaviour {
         else if(((!court.readyToServe && court.serveSide != currentSide)|| !court.serve)&& !hitting)
         {
             ComputerAim();
-            ComputerHit();
+            ComputerCalulateAndHit();
         }
     }
 
@@ -768,32 +733,33 @@ public class SpecialAction : MonoBehaviour {
             serveStage = 0;
             decided = true;
             waitCount = 0;
-            runServe = false;
             serveChoice = Mathf.RoundToInt(Random.Range(0f, myServes.Count-1));
-            
         }
         if(decided)
         {
             //toss the ball in the air
-            if(waitCount > waitServeCooldown)
-                myServes[serveChoice]();
+            if (waitCount > waitServeCooldown)
+                ComputerServe();
             else
             {
                 waitCount += Time.fixedDeltaTime;
             }
         }
-            
-        
     }
 
-    void RunningServe()
+    void ComputerServe()
     {
+        //Move back
         if (serveStage == 0)
         {
-            TeleportTo(transform.position - transform.forward * 2f);
+            TeleportTo(transform.position - Vector3.forward * ((float)CourtScript.OppositeSide(currentSide)) * movement.sprintSpeed * computerServeRunTimeOffset);
             aimAngle = Random.Range(15, 25) * Mathf.Deg2Rad;
             serveStage = 1;
+            waitCount = 0;
+            movement.faceNet = true;
+            movement.goToRotation = false;
         }
+        //Get ball
         else if(serveStage == 1)
         {
             hitCooldownTimer = hitCooldown + 1;
@@ -805,29 +771,41 @@ public class SpecialAction : MonoBehaviour {
         {
             if (hitting)
             {
-                originAimDir = Vector3.up * 1.1f + transform.forward;
-                originAimDir = originAimDir.normalized;
-                power = MaxPower * 0.5f;
-                ballSpin = Vector2.up;
                 serveStage = 3;
-                smash = false;
-                ComputerHit();
-                runServe = true;
+                shootInfo = playerShoot.FowardTossUp(computerServeRunTimeOffset, computerServeJumpTimeOffset, computerServeJumpTimeOffset + movement.jumpSpeed/(-Physics.gravity.y));
+                HitBall();
+                running = false;
             }
         }
+        //Run towards ball and jump
+        else if (serveStage == 3)
+        {
+            float timeTillBallIsAtJumpHeight = (-vBall.rb.velocity.y - Mathf.Sqrt(Mathf.Pow(vBall.rb.velocity.y, 2) - 4 * Physics.gravity.y * .5f * (vBall.rb.position.y - MaxJumpHeight))) / (Physics.gravity.y);
+            float timeForPlayerToReachJumpHeight = -movement.jumpSpeed / Physics.gravity.y;
+            float timeTillPlayerReachesBall = Vector3.Project(vBall.rb.velocity * timeTillBallIsAtJumpHeight + vBall.rb.position - transform.position, Vector3.up).magnitude / movement.sprintSpeed;
+            if (timeTillBallIsAtJumpHeight < timeForPlayerToReachJumpHeight && vBall.rb.velocity.y < 0 && Mathf.Abs(rb.velocity.y) < .15f && rb.position.y < .15f)
+            {
+                movement.jump = true;
+            }
+            if (timeTillPlayerReachesBall < timeTillBallIsAtJumpHeight || running)
+            {
+                movement.MoveDirectlyTowards(vBall.transform.position);
+                running = true;
+            }
+            if (hittable)
+                serveStage++;
+        }
+        //Hit ball over net
         else if (serveStage == 4)
         {
             if(hittable)
             {
-                originAimDir = (Mathf.Cos(aimAngle) * transform.forward - Mathf.Sin(aimAngle) * transform.right) * Mathf.Sqrt(5) - Vector3.up * 0.15f;
-                originAimDir = originAimDir.normalized;
-                power = MaxPower * .5f;
-                ballSpin = Vector2.up * (maxSpin * (1 + myLastVelocity.magnitude) + 1);
                 decided = false;
                 serveStage = 5;
-                smash = true;
-                ComputerHit();
-                runServe = false;
+                shootInfo = playerAim.ComputerAimFor(court.dimensions.CourtSection(CourtScript.OppositeSide(currentSide), CourtDimensions.Section.BackLeft)); //court.dimensions.BackLineRect(CourtScript.OppositeSide(currentSide)));
+                aimSpot = shootInfo.aimSpot;
+                myLastVelocity = rb.velocity;
+                ComputerCalulateAndHit();
             }
         }
     }
@@ -851,7 +829,7 @@ public class SpecialAction : MonoBehaviour {
                 ballSpin = Vector2.up;
                 serveStage = 2;
                 smash = false;
-                ComputerHit();
+                ComputerCalulateAndHit();
             }
         }
         else if (serveStage == 3)
@@ -863,84 +841,7 @@ public class SpecialAction : MonoBehaviour {
             decided = false;
             serveStage = 4;
             smash = true;
-            ComputerHit();
-
-        }
-    }
-
-    void NormalServe()
-    {
-        
-        if(serveStage == 0)
-        {
-            hitCooldownTimer = hitCooldown + 1;
-            court.GiveBallToServer();
-            aimAngle = Random.Range(10, 20) * Mathf.Deg2Rad;
-            serveStage = 1;
-        }
-        //toss the ball up in the air
-        else if (serveStage == 1)
-        {
-            if(hittable)
-            {
-                hitting = true;
-                originAimDir = Vector3.up;
-                power = MaxPower * .5f;
-                ballSpin = Vector2.up;
-                serveStage = 2;
-                smash = false;
-                ComputerHit();
-            }
-        }
-        else if(serveStage == 3)
-        {
-            if(hittable)
-            {
-                originAimDir = (Mathf.Cos(aimAngle) * transform.forward - Mathf.Sin(aimAngle) * transform.right) * Mathf.Sqrt(5) + transform.up * .6f;
-                originAimDir = originAimDir.normalized;
-                power = MaxPower*.5f;
-                ballSpin = Vector2.up;
-                decided = false;
-                serveStage = 4;
-                smash = true;
-                ComputerHit();
-            }
-        }
-    }
-
-    void SpinServe()
-    {
-
-        if (serveStage == 0)
-        {
-            hitCooldownTimer = hitCooldown + 1;
-            court.GiveBallToServer();
-            aimAngle = Random.Range(10, 20) * Mathf.Deg2Rad;
-            serveStage = 1;
-        }
-        //toss the ball up in the air
-        else if (serveStage == 1)
-        {
-            if (hitting)
-            {
-                originAimDir = Vector3.up;
-                power = MaxPower * .5f;
-                ballSpin = Vector2.up;
-                serveStage = 2;
-                smash = false;
-                ComputerHit();
-            }
-        }
-        else if (serveStage == 3)
-        {
-            originAimDir = (Mathf.Cos(aimAngle) * transform.forward - Mathf.Sin(aimAngle) * transform.right) * Mathf.Sqrt(5) + transform.up;//* .85f;
-            originAimDir = originAimDir.normalized;
-            power = MaxPower * .9f;
-            ballSpin = Vector2.up * Random.Range(1.1f,maxSpin + 1) + Vector2.right *  Random.Range(maxSpin, maxSpin);
-            decided = false;
-            serveStage = 4;
-            smash = true;
-            ComputerHit();
+            ComputerCalulateAndHit();
 
         }
     }
@@ -948,191 +849,47 @@ public class SpecialAction : MonoBehaviour {
 
     void ComputerAim()
     {
-        hitting = true;
-        goToBall = false;
-        Pass aimSpotInfo = court.LocalRelate.AimSpotInfo(this);
-        float time = ((float)aimSpotInfo.speed) / 4f;
-        if (aimSpotInfo.position <= CourtScript.MaxNumberOfPlayers)
-        {
-            if (aimSpotInfo.type == PassType.Location)
-                aimSpot = LocationRelation.StrategyLocationToCourt(aimSpotInfo.location, currentSide);
-            else
-            {
-                SpecialAction player = team.players.Find(x => x.currentPosition == aimSpotInfo.position);
-                aimSpot = Vector3.ProjectOnPlane(player.transform.position + player.movement.rb.velocity * time, Vector3.up) + (HEIGHT + player.movement.transform.position.y) * Vector3.up + aimSpotInfo.offset;
-                if (!player.movement.isGrounded)
-                {
-                    aimSpot += Vector3.up * (player.movement.rb.velocity.y * time + .5f * Physics.gravity.y * time * time + .5f);
-                    
-                }
-                player.goToBall = true;
-                if (CourtScript.FloatToSide(aimSpot.z) != currentSide)
-                    aimSpot.z = 0.25f * (float)currentSide;
-            }
-            if (aimSpot.y < HEIGHT)
-                aimSpot.y = HEIGHT;
-            
-        }
-        else
-        {
-            aimSpot = court.LocalRelate.AimSpot(CourtScript.OppositeSide(currentSide));
-
-
-            //SpecialAction player = court.Players[CourtScript.OppositeSide(currentSide)].Find(x => x.currentPosition == 1);
-            //aimSpot = Vector3.ProjectOnPlane(player.transform.position + player.movement.rb.velocity * time, Vector3.up) + (HEIGHT + player.movement.transform.position.y) * Vector3.up;// + aimSpotInfo.offset;
-        }
-
-        court.LocalRelate.aimSpot = aimSpot;
-        Vector3 distance = aimSpot - vBall.transform.position;
-        Vector3 velocity = Vector3.zero ;
-        float horizontalSpeed = Vector3.ProjectOnPlane(distance, Vector3.up).magnitude / time * vBall.rb.mass;
-        float verticalSpeed = (-.5f * Physics.gravity.y * time * time + distance.y) / time;
-        velocity = (Vector3.ProjectOnPlane(distance, Vector3.up).normalized * horizontalSpeed + Vector3.up * verticalSpeed);
-        Vector3 ballAtNet = (vBall.transform.position - Vector3.up * (vBall.transform.localScale.y + .1f) + velocity * (-vBall.transform.position.z / velocity.z) + Physics.gravity * Mathf.Pow((-vBall.transform.position.z / velocity.z), 2) * .5f);
-        if (CourtScript.FloatToSide(aimSpot.z) != currentSide &&  ballAtNet.y < court.NetHeight)
-        {
-            Vector3 distanceBallNet = vBall.rb.position - Vector3.up * vBall.transform.localScale.y- court.net.transform.position;
-            Vector3 distanceBallSpot = vBall.rb.position - aimSpot;
-            float Psin = 4.9f * 4 * (distanceBallSpot.y * -distanceBallNet.x - distanceBallNet.y * -distanceBallSpot.x)/((9.8f*9.8f -1) * (-distanceBallNet.x + distanceBallSpot.x));
-            float angle = Mathf.Asin(Mathf.Sqrt(Psin)) * Mathf.Rad2Deg;
-            //print(Psin);
-            //if(Psin > 0)
-            //{
-                //print("angle: " + angle);
-            //}
-            //verticalSpeed = Mathf.Sin(Mathf.Deg2Rad * angle) * horizontalSpeed / Mathf.Cos(Mathf.Deg2Rad * -angle);
-            //velocity.y = verticalSpeed;
-
-        }
-        power = velocity.magnitude<= MaxPower*2? velocity.magnitude:MaxPower*2;
-        originAimDir = velocity.normalized;
-        smash = false;
+        shootInfo = playerAim.ComputerAim();
+        aimSpot = shootInfo.aimSpot;
         ballSpin = Vector3.up;
         hitting = true;
-
     }
 
-    void ComputerHit()
+    void ComputerCalulateAndHit()
     {
-        aimDir = originAimDir;
-        float runHitConst = court.serve ? 2 : 10;
-        if (smash)
-        {
-            aimDir *= (smashConst + myLastVelocity.magnitude / runHitConst);
-        }
-        else
-        {
-            aimDir.y *= vBall.rb.mass;
-
-        }
-        ReturnSpeedToNormal();
-        //ShootBall();
+        shootInfo = playerShoot.ComputerCalculateShot(shootInfo, myLastVelocity);
+        HitBall();
     }
-
-    void ComputerActions()
-    {
-        if(court.serve)
-        {
-            if (vBall.rb.position.y > 6 && vBall.rb.position.y < 8 && vBall.rb.velocity.y < 0)
-            {
-                rb.velocity = Vector3.up * 6;
-                if (!runServe)
-                    serveStage = 3;
-                else
-                    serveStage = 4;
-            }
-            if(runServe)
-            {
-                rb.rotation = currentSide == Side.Left ? Quaternion.Euler(0, 0, 0) : Quaternion.Euler(0, 180, 0);
-            }
-            if (runServe && !hitting && vBall.rb.velocity.y < 4.5f && vBall.transform.position.y > 4 &&  serveStage >= 3)
-            {
-                rb.velocity = Vector3.Scale(rb.velocity, new Vector3(0, 1, 0)) + transform.forward * 7;
-            }
-        }
-    }
-
     #endregion
 
-    #region InputActions
-    //turns the arms on and off when you want to block
-    void Block()
+    public void SetPlayer(bool rplayer)
     {
-        arms.gameObject.SetActive(block);
-        if (block)
-        {
-            if (isPlayer)
-            {
-                SetCameraMovement(false);
-                SetArmMovement(true);
-                armWaveRotation.x -= (Input.mouseScrollDelta.y) * armWaveSensitivity;
-            }
-            else
-            {
-                /*if (Mathf.Abs(leftArm.transform.localEulerAngles.z) < 45 && Mathf.Abs(rightArm.transform.localEulerAngles.z) < 45)
-                {
-                    downArm-= 5f;
-                    print(downArm + ", " + leftArm.transform.localEulerAngles.z + " , " + rightArm.transform.localEulerAngles.z);
-                    if (downArm < -30)
-                        downArm = -30;
-                    leftArm.SetRotation(MyMouseLook.RotationAxes.MouseXAndY,0,downArm);
-                    rightArm.SetRotation(MyMouseLook.RotationAxes.MouseXAndY,0, downArm);
-                }*/
-                if (movement.rb.velocity.y > 0)
-                    downArm -= 1.75f;
-                else
-                {
-                    if (downArm < 0)
-                        downArm += 1.75f;
-                }
-                if (downArm < -40)
-                    downArm = -40;
-                leftArm.SetRotation(MyMouseLook.RotationAxes.MouseXAndY, blockArmRotation, downArm);
-                rightArm.SetRotation(MyMouseLook.RotationAxes.MouseXAndY, blockArmRotation, downArm);
-            }
-            
-            
-            blockOver = true;
-            if (armWaveRotation.x > 15)
-                armWaveRotation.x = 15;
-            if (armWaveRotation.x < -45)
-                armWaveRotation.x = -45;
-            hitCooldownTimer = 0;
-            armWaveRotation.y = -armWaveRotation.x;
-            blockArmRotation = 0;
-            leftArm.OffsetRotation = Quaternion.AngleAxis(armWaveRotation.x, leftArm.XDirection);
-            rightArm.OffsetRotation = Quaternion.AngleAxis(armWaveRotation.y, rightArm.XDirection);
-            //rb.velocity = rb.velocity.y * Vector3.up;
-        }
+        //if a person is controlling the player than lock the mouse to the center of the screen
+        if (rplayer)
+            cameraLook.SetCursorLock(true);
+        //if a computer is controlling the player turn off the cameras and the player movement controlled by 
+        //the input
         else
         {
-            if(blockOver)
-            {
-                if (isPlayer)
-                {
-                    SetArmMovement(false);
-                    SetCameraMovement(true);
-                }
-                else
-                {
-                    rightArm.Reset();
-                    leftArm.Reset();
-                }
-                blockOver = false;
-                downArm = 0;
-                leftArm.OffsetRotation = Quaternion.AngleAxis(0, leftArm.XDirection);
-                rightArm.OffsetRotation = Quaternion.AngleAxis(0, rightArm.XDirection);
-                armWaveRotation = Vector2.zero;
-            }
+            movement.relativeMovement = false;
+            fpc.gameObject.SetActive(false);
+            tpc.gameObject.SetActive(false);
+            m_MouseLook.enabled = false;
+            cameraLook.enabled = false;
+            
         }
+        //print("Current player named \"" + myParent.parent.gameObject.name + "\" is currently a " + rplayer + " player");
+        isPlayer = rplayer;
     }
+
+    #region InputActions
 
     //gets all the player input
     void GetInput()
     {
         if (isPlayer)
         {
-            block = (Input.GetAxisRaw("Block") != 0);
+            playerArm.block = (Input.GetAxisRaw("Block") != 0);
             playerSquat.squat = (Input.GetAxis("Squat") > 0.75f);
             stop = (Input.GetButtonDown("Cancel") || Input.GetButton("Cancel")) && !hitting;
             hit = Input.GetButtonDown("Fire") || Input.GetButton("Fire");
@@ -1159,7 +916,15 @@ public class SpecialAction : MonoBehaviour {
                         ReturnSpeedToNormal();
                     }
                 }
+                if ((Input.GetButtonDown("Pass")) && !court.rallyOver)
+                {
+                    GetPassPlayer();
+                }
 
+            }
+            else
+            {
+                passPlayer = null;
             }
             shootUp = Input.GetMouseButton(2);
             //checks if your running
@@ -1170,6 +935,23 @@ public class SpecialAction : MonoBehaviour {
         }
             
     }
+
+    void GetPassPlayer()
+    {
+        RaycastHit hit;
+        Ray ray = tpc.camera.ScreenPointToRay(Input.mousePosition);
+        ray.origin = ray.origin + ray.direction * (tpc.transform.position - transform.position).magnitude;
+        if (Physics.Raycast(ray, out hit, 30, LayerMask.GetMask("Player")))
+        {
+            SpecialAction temp = CourtScript.FindPlayerFromCollision(hit.transform);//.GetComponentInChildren<SpecialAction>();
+            if (temp.currentSide == currentSide)
+            {
+                passPlayer = temp;
+                return;
+            }
+        }
+        passPlayer = null;
+    }
     #endregion
 
     #region court methods
@@ -1177,12 +959,6 @@ public class SpecialAction : MonoBehaviour {
     public void SetMovementEnabled(bool value)
     {
         movement.enabled = value;
-    }
-
-    //gives a reference to the current player movement
-    public PlayerMovement GetController()
-    {
-        return movement;
     }
 
     public void ResetPosition()
@@ -1199,9 +975,9 @@ public class SpecialAction : MonoBehaviour {
     //and stop the controll of movement
     public void EndRally()
     {
-        block = false;
+        playerArm.block = false;
         playerSquat.squat = false;
-        Block();
+        playerArm.Block();
         playerSquat.Squat();
         ReturnSpeedToNormal();
         movement.Stop();
@@ -1210,15 +986,34 @@ public class SpecialAction : MonoBehaviour {
     #endregion
 
     #region Shooting Ball
-    
+    void ShowAimSpot()
+    {
+        if (aimSpotIndicator == null)
+            aimSpotIndicator = Instantiate(BallLandingIndicator, aimSpot, Quaternion.identity);
+        else
+            aimSpotIndicator.transform.position = aimSpot;
+        if (!isPlayer && BallLandingIndicator != null)
+        {
+            aimSpotIndicator.GetComponent<MeshRenderer>().material.color = Color.green;
+        }
+    }
+
     void HitBallStraightUp()
     {
-        originAimDir = Vector3.up;
-        power = MaxPower/3;
-        ballSpin = Vector3.up;
-        ComputerHit();
+        shootInfo.power = MaxPower / 3;
+        shootInfo.spin = Vector3.up;
+        shootInfo.aimDirection = Vector3.up;
+        HitBall();
     }
-    
+
+    void HitBall()
+    {
+        playerShoot.ShootBall(vBall, shootInfo);
+        if (passPlayer != null)
+            passPlayer.SetAsIntendedTarget();
+        ReturnSpeedToNormal();
+    }
+
     //allows the player to aim the ball, and after aiming
     void Aim()
     {
@@ -1267,21 +1062,26 @@ public class SpecialAction : MonoBehaviour {
         else if (hitMode == HitMode.CalculatePower)//aimed)
         {
             //calculates the power used to hit the ball
-            shootInfo = playerShoot.UserCalculatePower(originMousePos, shootInfo, myLastVelocity);
-            playerPower = shootInfo.powerVector;
+            if (passPlayer == null)
+            {
+                shootInfo = playerShoot.UserCalculatePower(originMousePos, shootInfo, myLastVelocity);
+                aimSpot = PredictLanding();
+            }
+            else
+            {
+                shootInfo = playerShoot.UserPassToPlayer(originMousePos, shootInfo, passPlayer);
+                aimSpot = shootInfo.aimSpot;
+            }
             //if you let go of the left click then return speed back to normal and hit the ball
             if (!hit || !isPlayer)
             {
-
-                playerShoot.ShootBall(vBall, shootInfo);
-                
-                ReturnSpeedToNormal();
+                HitBall();
             }
         }
 
         //predict where the ball will go
         if (hitting)
-            PredictShot();
+            showBallPath = true;
     }
 
     //set whether you have aimed or not, which will in turn adjust the 
@@ -1289,8 +1089,7 @@ public class SpecialAction : MonoBehaviour {
     void SetAimed(bool myAimed)
     {
         SetCameraMovement(!myAimed);
-        lobAgjust = 1;
-        aimed = myAimed;
+        //aimed = myAimed;
     }
 
     //allow the cameras to move with the mouse
@@ -1302,19 +1101,11 @@ public class SpecialAction : MonoBehaviour {
         tpc.allowZoom = move;
     }
 
-    public void SetArmMovement(bool move)
+    public void SetCursorLock(bool look)
     {
-        m_MouseLook.SetCursorLock(true);
-        rightArm.look = move;
-        leftArm.look = move;
-        if(!move)
-        {
-            rightArm.Reset();
-            leftArm.Reset();
-        }
+        m_MouseLook.SetCursorLock(look);
     }
-
-    //void OnTriggerEnter(Collider other)
+    
     public void OnMyTriggerEnter(Collider other)
     {
         //if the player is colliding with the ball and it the hit cooldown is over, and the rally 
@@ -1336,6 +1127,12 @@ public class SpecialAction : MonoBehaviour {
                 }
             }
         }
+    }
+
+    public void SetAsIntendedTarget()
+    {
+        ballTarget.goToBall = true;
+        ballTarget.touchCount = vBall.GetSideTouches(currentSide);
     }
 
     void HitSetUp()
@@ -1376,9 +1173,11 @@ public class SpecialAction : MonoBehaviour {
     void ReturnSpeedToNormal()
     {
         hitting = false;
-        aimed = false;
+        //aimed = false;
         smash = false;
         hittable = false;
+        showBallPath = false;
+        passPlayer = null;
 
         //returns time to normal
         slowDown = false;
@@ -1389,6 +1188,7 @@ public class SpecialAction : MonoBehaviour {
         hitTime = 0;
         hitMode = HitMode.Ready;
         hitCooldownTimer = 0;
+        ballTarget.goToBall = false;
 
         //Clear the information used for shooting the ball
         shootInfo.Reset();
@@ -1435,13 +1235,36 @@ public class SpecialAction : MonoBehaviour {
         Function spinFunction = new Function(null, null, shootInfo.GetCalculatedSpin(transform.forward));
         shotPathDrawer.SetPathSpread(shootInfo.power / playerShoot.MaxPower * 7*30);
         shotPathDrawer.SetFunction(shotFunction);
-        if(!shotPathDrawer.FunctionExists(Function.Gravity()))
+        if (!shotPathDrawer.GetFunction().Contains(Function.Gravity()))
+        {
             shotPathDrawer.AddGravity();
+            
+        }
         shotPathDrawer.AddFunction(spinFunction);
         shotPathDrawer.particleStartPosition = ballStartingPosition;
-        shotPathDrawer.SimulatePath();
+        //print(shotPathDrawer.GetFunction());
+        shotPathDrawer.SimulatePath(this);
+    }
+
+    Vector3 PredictLanding(float height)
+    {
+        Function function = shotPathDrawer.GetFunction().Flatten();
+        //print(function);
+        Vector3 landing = Vector3.zero;
+
+        float time = (-function.GetVelocity().y - Mathf.Sqrt(Mathf.Pow(function.GetVelocity().y,2) - 4 * function.GetAcceleration().y * 0.5f * (function.GetPosition().y - height))) / (function.GetAcceleration().y);
+        landing = 0.5f * function.GetAcceleration() * Mathf.Pow(time, 2) + function.GetVelocity() * time + function.GetPosition();
+        //print(landing);
+        return landing + vBall.transform.position;
+    }
+
+    Vector3 PredictLanding()
+    {
+        return PredictLanding(0.1f);
     }
     #endregion
+
+    #region Hittable
 
     public bool GetHittable()
     {
@@ -1458,6 +1281,6 @@ public class SpecialAction : MonoBehaviour {
         }
         return myTimer;
     }
-    
+    #endregion
 }
 

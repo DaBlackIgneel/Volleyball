@@ -14,6 +14,8 @@ public class VolleyballScript : MonoBehaviour {
         get { return previousPlayer; }
     }
 
+    public bool LastHitByServer {  get { return lastHitByServer; } }
+
     [System.NonSerialized]
     public Rigidbody rb;
     SpecialAction previousPlayer;
@@ -53,6 +55,7 @@ public class VolleyballScript : MonoBehaviour {
     bool shot;
 
     Vector3 right;
+    Vector3 lastHitVelocity;
 	// Use this for initialization
 	void Start () {
         
@@ -107,7 +110,7 @@ public class VolleyballScript : MonoBehaviour {
         ResetMotion();
         rb.AddForce(shotInfo.GetCalculateShot() * rb.mass, ForceMode.Impulse);
         SetSpin(shotInfo, reference);
-
+        lastHitVelocity = shotInfo.GetCalculateShot();
         if (endServe)
         {
             court.serve = false;
@@ -163,6 +166,7 @@ public class VolleyballScript : MonoBehaviour {
                 if (court.serve && currentPlayer.currentPosition == 1)
                 {
                     endServe = true;
+                    lastHitByServer = true;
                 }
                 //if your not the server than its a penalty
                 else
@@ -196,12 +200,10 @@ public class VolleyballScript : MonoBehaviour {
                 court.CourtRules.ReportMaxNumberHit(currentPlayer.currentSide);
             }
             if (lastHitByServer)
+            {
                 lastHitByServer = false;
+            }
         }
-        //StartCoroutine("FindPlayerBallGoingTo", currentPlayer);
-        //court.LocalRelate.FindWhoBallIsGoingTo(currentPlayer);
-        //no more spin calculations
-        //currentAdditions = maxAdditions;
 
         //current player is now the last player to hit the ball
         previousPlayer = currentPlayer;
@@ -209,13 +211,6 @@ public class VolleyballScript : MonoBehaviour {
 
         //reset the same player cooldown
         samePlayerCount = 0;
-    }
-
-    
-
-    void UndoLastCollision()
-    {
-
     }
 
     //stops all motion
@@ -294,22 +289,25 @@ public class VolleyballScript : MonoBehaviour {
 
     //on collision with anything reset the spin of the ball
     //collisions with the objects other than players
-
     void OnCollisionEnter(Collision other)
     {
         RemoveSpin();
         //if currently colliding with the player then go through all the player collision checks
-        if (other.transform.tag == "PlayerArms" || other.transform.tag == "PlayerBody")
+        if (other.transform.tag == "PlayerArms" || other.transform.tag == "PlayerBody" && other.gameObject.activeInHierarchy)
         {
-            //SpecialAction currentPlayer = CourtScript.FindPlayerFromCollision(other.transform);
-            //if(currentPlayer != null)
-            // CollideWithPlayer(currentPlayer);
-            LastPlayerHit = CourtScript.GetHighestParent(other.gameObject.transform).GetComponentInChildren<SpecialAction>();
-            if (LastPlayerHit != null && previousPlayer != null  && LastPlayerHit.currentSide != previousPlayer.currentSide)
+            SpecialAction temp = CourtScript.FindPlayerFromCollision(other.transform);//.GetComponentInChildren<SpecialAction>();
+            if (temp != null)
             {
-                print("hello2");
-                touches = 0;
-                court.SetAllDefense();
+                if (previousPlayer != null && temp.currentSide != previousPlayer.currentSide)
+                {
+                    touches = 0;
+                    court.SetAllDefense();
+                }
+                if(temp != LastPlayerHit)
+                {
+                    rb.AddForce(Vector3.Scale(lastHitVelocity, new Vector3(0, 0, -1.25f)) * rb.mass, ForceMode.Impulse);
+                }
+                LastPlayerHit = temp;
             }
             return;
         }
@@ -320,6 +318,7 @@ public class VolleyballScript : MonoBehaviour {
             {
                 court.CourtRules.ReportNetServe(LastPlayerHit.currentSide);
             }
+            rb.AddForce(rb.velocity * -.75f * rb.mass, ForceMode.Impulse);
         }
         //if ball hits anything else then its out of bounds
         else if (!court.rallyOver && other.gameObject.layer != LayerMask.NameToLayer("Player"))
@@ -327,13 +326,13 @@ public class VolleyballScript : MonoBehaviour {
             if (previousPlayer != null)
             {
                 court.CourtRules.ReportGroundedOut(rb.position, other.transform.tag != "Court", LastPlayerHit.currentSide);
+                if (court.CourtRules.GroundedOut)
+                    court.scoredPoints.Add(transform.position);
             }
             currentAdditions = maxAdditions;
         }
         
     }
-
-    
 
     //reset the spin of the ball
     void RemoveSpin()

@@ -340,6 +340,7 @@ public class StrategyEditor : Editor {
     SerializedProperty path;
     SerializedProperty block;
     SerializedProperty defensePosition;
+    SerializedProperty defensePositions;
     List<SerializedProperty> balls;
     Texture courtImage;
     Texture fenceImage;
@@ -361,6 +362,14 @@ public class StrategyEditor : Editor {
     Vector2 myPosition;
     Vector2 pointSize;
     Vector2 fenceSize;
+    Vector3 DEFAULT_POSITION_VALUE;
+
+    BallSimulation copyPositionsFromSimulation = BallSimulation.Center;
+    BallSimulation currentSimulation = BallSimulation.Center;
+
+    int swapA;
+    int swapB;
+
     float lineSize = 5;
     float y;
     bool initial = true;
@@ -371,7 +380,7 @@ public class StrategyEditor : Editor {
 
     void OnEnable()
     {
-        
+        DEFAULT_POSITION_VALUE = Vector3.one * 11;
         strategyType = serializedObject.FindProperty("type");
         numOfPlayers = serializedObject.FindProperty("numOfPlayers");
         courtPositions = serializedObject.FindProperty("defaultPositions");
@@ -380,13 +389,16 @@ public class StrategyEditor : Editor {
         path = serializedObject.FindProperty("movementPath");
         block = serializedObject.FindProperty("blocker");
         defensePosition = serializedObject.FindProperty("myPosition");
+        defensePositions = serializedObject.FindProperty("defensePositions");
         InitializePlayers();
         InitializeCourt();
+        InitializeDefense();
         buttonSize = Vector2.one * 20;
         buttonInfo = new GUIContent();
         buttonInfo.image = (Texture)Resources.Load("AddButton");
         balls = new List<SerializedProperty>();
         initial = true;
+        serializedObject.ApplyModifiedProperties();
     }
 
     void InitializePlayers()
@@ -433,7 +445,7 @@ public class StrategyEditor : Editor {
             }
         }
         playerSize = Vector2.one * 40;
-        serializedObject.ApplyModifiedProperties();
+        
     }
 
     void InitializeCourt()
@@ -450,7 +462,45 @@ public class StrategyEditor : Editor {
         seamImage = (Texture)Resources.Load("seam");
     }
 
-    
+    void InitializeDefense()
+    {
+        if (block.arraySize != CourtScript.MaxNumberOfPlayers)
+        {
+            for (int b = block.arraySize; b < CourtScript.MaxNumberOfPlayers; b++)
+                block.InsertArrayElementAtIndex(b);
+            for (int b = block.arraySize; b > CourtScript.MaxNumberOfPlayers; b--)
+                block.DeleteArrayElementAtIndex(b - 1);
+        }
+        if (defensePositions.arraySize != 3 * CourtScript.MaxNumberOfPlayers)
+        {
+            for (int b = defensePositions.arraySize; b < 3 * CourtScript.MaxNumberOfPlayers; b++)
+            {
+                defensePositions.InsertArrayElementAtIndex(b);
+                defensePositions.GetArrayElementAtIndex(b).vector3Value = DEFAULT_POSITION_VALUE*1;
+            }
+            for (int b = defensePositions.arraySize; b > 3 * CourtScript.MaxNumberOfPlayers; b--)
+                defensePositions.DeleteArrayElementAtIndex(b - 1);
+        }
+        if (defensePosition.arraySize != CourtScript.MaxNumberOfPlayers)
+        {
+            for (int b = defensePosition.arraySize; b < CourtScript.MaxNumberOfPlayers; b++)
+                defensePosition.InsertArrayElementAtIndex(b);
+            for (int b = defensePosition.arraySize; b > CourtScript.MaxNumberOfPlayers; b--)
+                defensePosition.DeleteArrayElementAtIndex(b - 1);
+        }
+    }
+
+    void ResetUnusedPositions()
+    {/*
+        for(int b = 0; b < 3; b++)
+        {
+            for (int i = numOfPlayers.intValue; i < CourtScript.MaxNumberOfPlayers; i++)
+            {
+                MonoBehaviour.print(b * CourtScript.MaxNumberOfPlayers + i);
+                defensePositions.GetArrayElementAtIndex(b* CourtScript.MaxNumberOfPlayers + i).vector3Value = DEFAULT_POSITION_VALUE;
+            }
+        }*/
+    }
 
     public override void OnInspectorGUI()
     {
@@ -458,20 +508,31 @@ public class StrategyEditor : Editor {
         serializedObject.Update();
         EditorGUILayout.PropertyField(strategyType);
         numOfPlayers.intValue = EditorGUILayout.IntField("Number of Players", numOfPlayers.intValue);
-        AddY(100);
+        if (strategyType.enumValueIndex == 1)
+        {
+            currentSimulation = (BallSimulation)EditorGUILayout.EnumPopup("Current Simulation", currentSimulation);
+            
+        }
+        AddY(110);
         position.y = y;
         GUI.DrawTexture(new Rect(position, size), courtImage);
         AddY(size.y + 25);
         GUILayout.Space(size.y + 25);
         
+        
         //draws the players and stores value into actual variable;
         for(int i = 0; i < numOfPlayers.intValue; i++)
         {
-            players[i] = Vector2.Scale(EditorGUILayout.Vector2Field("Player" + (i+1).ToString(), Vector2.Scale(players[i],Vector2.one * 9)),Vector2.one * 1/9);
-            GUI.DrawTexture(new Rect(Vector2.Scale(players[i], size) + PlaceOnCourt(playerSize), playerSize), playerPics[i]);
+           
+            
+            //Draw for offense
             if (strategyType.enumValueIndex == 0)
             {
-                if(path.GetArrayElementAtIndex(i).FindPropertyRelative("points").arraySize < 1)
+                players[i] = Vector2.Scale(EditorGUILayout.Vector2Field("Player" + (i + 1).ToString(), Vector2.Scale(players[i], Vector2.one * 9)), Vector2.one * 1 / 9);
+                GUI.DrawTexture(new Rect(Vector2.Scale(players[i], size) + PlaceOnCourt(playerSize), playerSize), playerPics[i]);
+                //GUI.DrawTexture(new Rect(Vector2.Scale(players[i], size) + PlaceOnCourt(playerSize), playerSize), playerPics[i]);
+                //
+                if (path.GetArrayElementAtIndex(i).FindPropertyRelative("points").arraySize < 1)
                     EditorGUILayout.PropertyField(path.GetArrayElementAtIndex(i));
                 if (GUI.Button(new Rect(Vector2.Scale(players[i], size) + PlaceOnCourt(playerSize) + buttonSize/2, buttonSize), "+"))
                 {
@@ -482,6 +543,7 @@ public class StrategyEditor : Editor {
                     
                 }
 
+                //draws the Path of the specific player
                 if (path.GetArrayElementAtIndex(i).FindPropertyRelative("size").intValue > 0)
                 {
                     EditorGUILayout.PropertyField(path.GetArrayElementAtIndex(i));
@@ -505,23 +567,19 @@ public class StrategyEditor : Editor {
                 }
 
             }
+            //Draw for defense
             else
             {
-                if(block.arraySize != CourtScript.MaxNumberOfPlayers)
-                {
-                    for (int b = block.arraySize; b < CourtScript.MaxNumberOfPlayers; b++)
-                        block.InsertArrayElementAtIndex(b);
-                    for (int b = block.arraySize; b > CourtScript.MaxNumberOfPlayers; b--)
-                        block.DeleteArrayElementAtIndex(b - 1);
-                }
-                if (defensePosition.arraySize != CourtScript.MaxNumberOfPlayers)
-                {
-                    for (int b = defensePosition.arraySize; b < CourtScript.MaxNumberOfPlayers; b++)
-                        defensePosition.InsertArrayElementAtIndex(b);
-                    for (int b = defensePosition.arraySize; b > CourtScript.MaxNumberOfPlayers; b--)
-                        defensePosition.DeleteArrayElementAtIndex(b - 1);
-                }
-
+                if (defensePositions.arraySize != 3 * CourtScript.MaxNumberOfPlayers)
+                    InitializeDefense();
+                Vector2 tempPosition = EditorGUILayout.Vector2Field("Player" + (i + 1).ToString(),
+                            new Vector2(defensePositions.GetArrayElementAtIndex(((int)currentSimulation + 1) * CourtScript.MaxNumberOfPlayers + i).vector3Value.x,
+                                        defensePositions.GetArrayElementAtIndex(((int)currentSimulation + 1) * CourtScript.MaxNumberOfPlayers + i).vector3Value.z));
+                defensePositions.GetArrayElementAtIndex(((int)currentSimulation + 1) * CourtScript.MaxNumberOfPlayers + i).vector3Value = new Vector3(tempPosition.x, 0, tempPosition.y);
+                            
+                players[i] = Vector2.Scale(tempPosition, Vector2.one * 1 / 9);
+                GUI.DrawTexture(new Rect(Vector2.Scale(players[i], size) + PlaceOnCourt(playerSize), playerSize), playerPics[i]);
+                //GUI.DrawTexture(new Rect(Vector2.Scale(players[i], size) + PlaceOnCourt(playerSize), playerSize), playerPics[i]);
                 EditorGUI.indentLevel++;
                 EditorGUILayout.PropertyField(defensePosition.GetArrayElementAtIndex(i), new GUIContent("Defensive Position"));
 
@@ -548,7 +606,7 @@ public class StrategyEditor : Editor {
             AddY();
             
         }
-
+        ResetUnusedPositions();
 
 
         //drawing for offense
@@ -634,6 +692,75 @@ public class StrategyEditor : Editor {
         //drawing for defense
         else
         {
+            //Draws a ball at the top of the court to indicate where the ball will be during the 
+            //simulation
+            Vector2 simulationBallPosition = PlaceOnCourt(ballSize) + Vector2.Scale(Vector2.right * (((float)currentSimulation)/2 *.9f), size);
+            GUI.DrawTexture(new Rect(simulationBallPosition, ballSize), ballImage);
+
+            EditorGUILayout.Separator();
+
+            //Creates a copy button that will copy the player positions of the specified
+            //simulation into the current simulation
+            copyPositionsFromSimulation = (BallSimulation)EditorGUILayout.EnumPopup("Copy Position Values From ", copyPositionsFromSimulation);
+            if (GUILayout.Button("Copy"))
+            {
+                for(int i = 0; i < numOfPlayers.intValue; i++)
+                {
+                    defensePositions.GetArrayElementAtIndex(((int)currentSimulation + 1) * CourtScript.MaxNumberOfPlayers + i).vector3Value =
+                            defensePositions.GetArrayElementAtIndex(((int)copyPositionsFromSimulation + 1) * CourtScript.MaxNumberOfPlayers + i).vector3Value;
+                }
+            }
+
+            //Creates a button that will copy the player positions of the simulation where the
+            //ball is on the left, and it will flip all the players "x" positions and paste it
+            //into the simulation where the ball is on the right
+            if (GUILayout.Button("Right = Flip Left"))
+            {
+                for (int i = 0; i < numOfPlayers.intValue; i++)
+                {
+                    defensePositions.GetArrayElementAtIndex(((int)BallSimulation.Right + 1) * CourtScript.MaxNumberOfPlayers + i).vector3Value =
+                            Vector3.Scale(defensePositions.GetArrayElementAtIndex(((int)BallSimulation.Left + 1) * CourtScript.MaxNumberOfPlayers + i).vector3Value, Vector3.right * -1 + Vector3.forward);
+                }
+            }
+
+            //Creates a button that will copy the player positions of the simulation where the
+            //ball is on the right, and it will flip all the players "x" positions and paste it
+            //into the simulation where the ball is on the left
+            if (GUILayout.Button("Left = Flip Right"))
+            {
+                for (int i = 0; i < numOfPlayers.intValue; i++)
+                {
+                    defensePositions.GetArrayElementAtIndex(((int)BallSimulation.Left + 1) * CourtScript.MaxNumberOfPlayers + i).vector3Value =
+                            Vector3.Scale(defensePositions.GetArrayElementAtIndex(((int)BallSimulation.Right + 1) * CourtScript.MaxNumberOfPlayers + i).vector3Value, Vector3.right * -1 + Vector3.forward);
+                }
+            }
+
+            //Creates two integer fields that are aligned horizontally
+            //These integer fields contain the players whose position you want swapped.
+            EditorGUILayout.BeginHorizontal();
+            swapA = EditorGUILayout.IntField("Swap PlayerA", swapA);
+            swapB = EditorGUILayout.IntField("Swap PlayerB", swapB);
+            EditorGUILayout.EndHorizontal();
+
+            //Makes sure the swapped players are valid players
+            if (swapA > numOfPlayers.intValue)
+                swapA = numOfPlayers.intValue;
+            if (swapB > numOfPlayers.intValue)
+                swapB = numOfPlayers.intValue;
+            if (swapA < 1)
+                swapA = 1;
+            if (swapB < 1)
+                swapB = 1;
+
+            //Creates a swap button that will swap player a and b positions
+            if (GUILayout.Button("Swap"))
+            {
+                Vector3 temp = defensePositions.GetArrayElementAtIndex(((int)currentSimulation + 1) * CourtScript.MaxNumberOfPlayers + swapA-1).vector3Value;
+                defensePositions.GetArrayElementAtIndex(((int)currentSimulation + 1) * CourtScript.MaxNumberOfPlayers + swapA-1).vector3Value =
+                            defensePositions.GetArrayElementAtIndex(((int)currentSimulation + 1) * CourtScript.MaxNumberOfPlayers + swapB-1).vector3Value;
+                defensePositions.GetArrayElementAtIndex(((int)currentSimulation + 1) * CourtScript.MaxNumberOfPlayers + swapB-1).vector3Value = temp;
+            }
+
         }
         //GUI.DrawTexture(new Rect(Vector2.Scale(V3toV2(defensePassLocation.vector3Value), size) + PlaceOnCourt(ballSize), ballSize), ballImage);
         initial = false;

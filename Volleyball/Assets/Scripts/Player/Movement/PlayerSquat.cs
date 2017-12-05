@@ -24,8 +24,8 @@ public class PlayerSquat : MonoBehaviour, IInitializable {
     Vector3 originalGroundPosition;
     Vector3 squatGroundPosition;
 
-    float HEIGHT = 2f;
-    float SQUAT_HEIGHT = 1f;
+    public float HEIGHT = 2f;
+    public float SQUAT_HEIGHT = 1f;
 
     SpecialAction player;
 

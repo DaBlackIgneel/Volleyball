@@ -95,48 +95,55 @@ public class PlayerMovement : MonoBehaviour {
         if (isGrounded)
         {
             //sets the desired speed whether walking or running
-            float speed = isWalking? walkSpeed : sprintSpeed;
-
-            //gets the horizontal and vertical inputs
-            //float horizontal = Input.GetAxis("Horizontal");
-            //float verticle = Input.GetAxis("Vertical");
+            float speed = isWalking ? walkSpeed : sprintSpeed;
 
             //calculates the desired movement that is tangent to the surface below
-
             Vector3 desiredMove;
             desiredMove = relativeMovement ? movementDirection.x * transform.right + movementDirection.y * transform.forward : movementDirection.x * Vector3.right + movementDirection.y * Vector3.forward;
-            
-            
+
+
             RaycastHit hitInfo;
             Physics.SphereCast(transform.position, myCollider.radius, Vector3.down, out hitInfo,
                                myCollider.height / 2f, Physics.AllLayers, QueryTriggerInteraction.Collide);
-            desiredMove = Vector3.ProjectOnPlane(desiredMove, hitInfo.normal).normalized;
-
+            desiredMove = Vector3.ProjectOnPlane(desiredMove * speed, hitInfo.normal).normalized;
             //smoothly increase the speed to the desired speed
             Vector3 moveDir = Vector3.zero;
-            moveDir.x = desiredMove.x * Mathf.Lerp(rb.velocity.magnitude, speed, .1f);
-            moveDir.z = desiredMove.z * Mathf.Lerp(rb.velocity.magnitude, speed, .1f);
+            moveDir = desiredMove * Mathf.Lerp(rb.velocity.magnitude, speed, 0.1f);
             moveDir.y = rb.velocity.y;
 
             jumping = false;
             //if you want to jump, then jump
             if (jump)
             {
+                //do a power jump if you wanted to move and jump quickly
+                if (Vector3.Project(moveDir, Vector3.up).magnitude > Vector3.Project(desiredMove, Vector3.up).magnitude * .1f && !relativeMovement)
+                    moveDir = desiredMove;
+
                 //add the initial jumpspeed
                 moveDir.y = jumpSpeed;
                 jump = false;
                 jumping = true;
+                
             }
 
             //move the player in the desired movement
             if (rb.velocity != moveDir)
+            {
                 rb.AddForce((moveDir - rb.velocity) * rb.mass, ForceMode.Impulse);
+            }
 
         }
 
         isStopped = rb.velocity.magnitude < Mathf.Epsilon;
         isWalking = isStopped ? true : isWalking;
-        
+        //explode = false;
+
+    }
+
+    public void CalculatedMoveTowards(Vector3 targetPosition)
+    {
+        bool walking = Vector3.Project(targetPosition - transform.position, Vector3.up).magnitude < walkSpeed/2;
+        MoveTowards(targetPosition, walking);
     }
 
     public void MoveTowards(Vector3 targetPosition, bool walking = false)
@@ -145,20 +152,34 @@ public class PlayerMovement : MonoBehaviour {
         
         direction.y = direction.z;
         direction.z = 0;
-        isWalking = !isStopped? walking:true;//direction.magnitude < 1;
-        if (direction.magnitude > .1f)
+        isWalking = !isStopped? walking:true;
+        float speed = isWalking ? walkSpeed : sprintSpeed;
+        if (direction.magnitude > speed * .15f)
             Move(direction);
         else
             Stop();
     }
+
+    public void MoveDirectlyTowards(Vector3 targetPosition, bool walking = false)
+    {
+        Vector3 direction = targetPosition - transform.position;
+
+        direction.y = direction.z;
+        direction.z = 0;
+        isWalking = walking;
+        Move(direction);
+    }
     public void Move(Vector2 direction)
     {
-        movementDirection = direction;
+        movementDirection = direction.normalized;
     }
 
     public void Stop()
     {
         movementDirection = Vector2.zero;
+        Vector3 stopDir = Vector3.up * rb.velocity.y;
+        if(!relativeMovement && isGrounded)
+            rb.AddForce((stopDir - rb.velocity ) * rb.mass, ForceMode.Impulse);//*/
     }
-    
+
 }
